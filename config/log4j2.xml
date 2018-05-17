@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--  This is the suggested configuration.  In config/log4j2.xml -->
+<Configuration status="INFO" monitorInterval="30">
+
+  <Properties>
+    <Property name="log-path">logs</Property>
+  </Properties>
+  
+  <Appenders>
+  	<!-- Console Appender -->
+    <Console name="Console" target="SYSTEM_OUT">
+      <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %m%n"/>
+    </Console>
+    
+    <!-- Rolling File Appender - rolls daily -->
+    <RollingFile name="LOG-FILE" fileName="${log-path}/client.log" filePattern="${log-path}/client-%d{yyyy-MM-dd}-%i.log.gz">
+      <PatternLayout pattern="%d{ISO8601} [%t] %-5level %logger{36} - %m%n"/>
+      <Policies>
+        <OnStartupTriggeringPolicy />
+        <TimeBasedTriggeringPolicy />
+      </Policies>
+      <DefaultRooloverStrategy max="10" />
+    </RollingFile>
+  </Appenders>
+  
+  <Loggers>
+    <!-- The 'Root' logger is the default if a specific logger isn't configured -->
+    <Root level="info">
+      <AppenderRef ref="Console"/>
+      <AppenderRef ref="LOG-FILE"/>
+    </Root>
+
+  	<Logger name="Driver" level="info" /> <!--  Top level device ('main') class -->
+
+  	<Logger name="GLOBAL.Server.Communication" level="info" />
+  	<!-- <Logger name="GLOBAL.Server.Communication.Receive" level="info" /> -->
+  	<!-- <Logger name="GLOBAL.Server.Communication.Send" level="info" /> -->
+
+  	<Logger name="wa.audio.AudioConstants" level="info" />
+  	<Logger name="wa.audio.AudioInput" level="info" />
+  	<Logger name="wa.audio.AudioOutput" level="info" />
+  	<Logger name="wa.audio.AudioPlayer" level="info" />
+  	<Logger name="wa.audio.AudioSocket" level="info" />
+  	<Logger name="wa.audio.LocalAudio" level="info" />
+
+  	<Logger name="wa.client.Client" level="info" />
+  	<Logger name="wa.client.ClientHelpers" level="info" />
+  	<Logger name="wa.client.Client.SocketCommandProcessor" level="info" />
+  	<Logger name="wa.client.Client.ThreadManager" level="info" />
+
+  	<Logger name="wa.network.LocalNetworkInterface" level="info" />
+
+  	<Logger name="wa.status.StatusConsole" level="info" />
+  	<Logger name="wa.status.StatusIndicator" level="info" />
+  	<Logger name="wa.status.StatusLED" level="info" />
+  	<Logger name="wa.status.StatusPing" level="info" />
+
+  	<Logger name="wa.trigger.ListenGpio" level="info" />
+  	<Logger name="wa.trigger.ListenKey" level="info" />
+  	<Logger name="wa.trigger.ListenGpio" level="info" />
+
+  	<Logger name="wa.util.CallStack" level="info" />
+  	<Logger name="wa.util.Debouncer" level="info" />
+  	<Logger name="wa.util.NotifyingThread" level="info" />
+  	<Logger name="wa.util.Utils" level="info" />
+
+  </Loggers>
+  
+</Configuration>

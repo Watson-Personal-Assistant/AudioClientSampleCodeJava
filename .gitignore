@@ -1,0 +1,16 @@
+.idea/*
+.DS_Store
+target/*
+target-display/*
+test/*
+dependency-reduced-pom.xml
+configure.properties
+configure.properties.example.*
+*README.pdf
+TTS_CREDS
+build
+*.iml
+/logs/
+/target*/
+/target/
+/test/
