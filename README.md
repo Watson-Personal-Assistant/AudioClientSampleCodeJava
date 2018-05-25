@@ -37,31 +37,42 @@ $ mvn package
 ## Development and Debugging (ability to use Eclipse IDE)
 **For deployment to a device (e.g. Raspberry Pi) the Maven build must be run from the command line (to create a correctly configured JAR)**
 
-For development and debugging - an `Eclipse project` has been created.  Using a dedicated Java IDE like Eclipse can provide significant benefits during development (and especially debugging).  The Eclipse project is configured to function as a Maven Project/Build.  This means you can edit, build, and debug directly from Eclipse. Remote debugging is also possible.  The Maven build is configured with debug information, so if you run the client on the Raspberry Pi in debug mode you can connect to it from Eclipse and debug interactively.  
+# Instructions for Eclipse
+These instructions are for Eclipse, but those of you that use other IDE's can probably adapt to these instuctions.
 
-An example command to run the client in remote debug mode is:
-`sudo java -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8000 -jar wpa-1.4-SNAPSHOT.jar`
-In Eclipse, simply configure a 'Debug Configuration' that specifies the IP address and port of the target and the main class: `Driver`
+For development and debugging - an `Eclipse project` has been created.  Find it as `.project` in the main folder.
 
-The `start` directory contains startup scripts for both debug and non-debug modes.
+Using a dedicated Java IDE like Eclipse can provide significant benefits during development (and especially debugging).  The Eclipse project is configured to function as a Maven Project/Build.  This means you can edit, build, and debug directly from Eclipse. Remote debugging is also possible.  The Maven build is configured with debug information, so if you run the client on the Raspberry Pi in debug mode you can connect to it from Eclipse and debug interactively.
 
-If you are setting this up for the first time, it means you will need to create an Eclipse Workspace or use an existing Workspace.  Import the Eclipse project from this directory into the Workspace.
+Create a new workspace and import the project (as an existing Eclipse project).
 
-To Run/Debug directly from Eclipse (on the local machine) you will need to set up a local Run/Debug configuration.  The main requirement for this is that you will need to indicate that the working directory is the `target/` directory and make sure that it includes a properly configured `configure.properties` file (the Eclipse build does not put one there, so if a 'clean' build is performed there will not be a `configure.properties` file in the directory.  If the `configure.properties` file doesn't exist the client should announce that to you (a good test really...).
+You can run and debug the client within Eclipse - just set up a 'Run/Debug' configuration with the main class of 'Driver'.
+
+To debug remotely on the Raspberry Pi:
+	An example command to run the client in remote debug mode is:
+	`sudo java -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8000 -jar wpa-1.4-SNAPSHOT.jar`
+	In Eclipse, simply configure a 'Debug Configuration' that specifies the IP address and port of the target and the main class: `Driver`
+
+The `start` directory contains startup scripts for both debug and non-debug modes. These scripts can be copied to the `watson` directory on the device.
+
+To Run/Debug directly from Eclipse (on the local machine) you will need to set up a local Run/Debug configuration.  The main requirement for this is that you will need to indicate that the working directory is the `target/` directory and make sure that the config directory includes a properly configured `configure.properties` file (the Eclipse build does not put one there, so if a 'clean' build is performed there will not be a `configure.properties` file in the directory.  If the `configure.properties` file doesn't exist in the `config` directory the client should announce that to you (a good test really...).
 
 *(as we find and resolve problems with the Eclipse project, we will add to this section - for example, a 'clean' build will delete 'target', so we probably want a build step to copy a `configure.properties` in at the end of the build.)*
 
 
 ## Deploy
-Copy the jar (created using the `maven package` command) from the `target/` directory to the device, e.g.
+Our standard deployment to a device is into the ~/watson directory.
+
+Copy the jar (created using the `maven package` command) from the `target/` directory on your local system to the device `~/watson` directory, e.g.
 
 ```
-$ scp target/wpa-1.4-SNAPSHOT.jar  pi@192.168.1.15:~/watson
+$ scp target/wpa-1.4-SNAPSHOT.jar  pi@192.168.1.101:~/watson
 ```
-
 
 ## Run
-Copy `configure.properties.example` to `configure.properties` and copy it to the device `~/watson`.  Provide configuration and credential information and options by editing the following properties:
+Copy `configure.properties.example` to `configure.properties` into the the `~/watson/config` directory of the device.  Provide configuration and credential information and options by editing the following properties:
+
+The `start` directory contains startup scripts for both debug and non-debug modes. These scripts can be copied to the `watson` directory on the device.
 
 ### Required Connection Information
 * `host` The URL of the Audio Gateway server (should NOT include the protocol prefix such as "https://")

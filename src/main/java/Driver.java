@@ -111,7 +111,9 @@ public class Driver {
             // Just return a null properties...
         } finally {
             try {
-                file.close();
+            	if (null != file) {
+            		file.close();
+            	}
             } catch (IOException e) { }
         }
         return props;
