@@ -85,6 +85,8 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
     
     private String skillset = null;
 
+    private String tenantID = null;
+
     private String language = null;
     
     private String engine = null;
@@ -929,7 +931,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
 
     private int writeToServerCount;
     private int writeToServerBytes;
-	private String IAMAPIKey;
+    private String IAMAPIKey;
 
     public synchronized void clearServerWriteLogging() {
         writeToServerCount = 0;
@@ -1044,6 +1046,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
         // Required parameter
         IAMAPIKey = props.getProperty("IAMAPIKey");
         skillset = props.getProperty("skillset");
+        tenantID = props.getProperty("tenantID");
         
         // Optional parameters
         language = props.getProperty("language");
@@ -1075,6 +1078,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
         LOG.info("WATSON HOST: " + watsonHost);
         LOG.info("WATSON PORT: " + watsonPort);
         LOG.info("SKILLSET: " + skillset);        
+        LOG.info("TENANT ID (Optional): " + tenantID);        
         LOG.info("WATSON IAM API Key: *****");        
 
         if (watsonHost == null || skillset == null || IAMAPIKey == null) {
@@ -1198,6 +1202,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
                     + (watsonPort == null ? "" : ":" + watsonPort) + "?skillset=" + skillset+"&userID=" + userID + "&language=" + language + "&engine=" + engine;
             Request request = new Request.Builder()
                     .url(webSocketUrl)
+                    .addHeader("tenantId", tenantID)
                     .addHeader("Authorization", "Bearer " + IAMAccessToken)
                     .build();
 
