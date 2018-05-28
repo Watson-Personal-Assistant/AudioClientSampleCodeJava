@@ -20,7 +20,7 @@
         <OnStartupTriggeringPolicy />
         <TimeBasedTriggeringPolicy />
       </Policies>
-      <DefaultRooloverStrategy max="10" />
+      <DefaultRolloverStrategy max="10" />
     </RollingFile>
   </Appenders>
   

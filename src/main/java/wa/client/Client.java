@@ -1,6 +1,6 @@
 package wa.client;
 /**
- * Copyright 2016-2017 IBM Corporation. All Rights Reserved.
+ * Copyright 2016-2018 IBM Corporation. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,6 +32,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
@@ -304,7 +305,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
                     }
                     if (ServerConnectionStatus.NOTCONNECTED == getServerConnectionStatus()) {
                     		// IAMAccessToken should be retrieved from the IAM service by providing it with your cloud API Key (based on your IBM ID)
-                        IAMAccessToken = getIAMAccessToken(IAMAPIKey);
+                        IAMAccessToken = getIAMAccessToken(keyIAMAPI);
 
                         // We need to connect...
                         connect();
@@ -634,7 +635,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
 
     public synchronized void notifyOfThreadStop(final Thread thread) {
         String name = Thread.currentThread().getName();
-        LOG.warn(String.format("Thread '%s' stopped!", name));
+        LOG.info(String.format("Thread '%s' stopped.", name));
     }
 
     public SocketCommandProcessor getSocketCommandProcessor() {
@@ -929,7 +930,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
 
     private int writeToServerCount;
     private int writeToServerBytes;
-	private String IAMAPIKey;
+	private String keyIAMAPI;
 
     public synchronized void clearServerWriteLogging() {
         writeToServerCount = 0;
@@ -1006,10 +1007,12 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
         return true;
     }
 
-    private void joinThreads() {
+    /**
+     * Exit client due to an error.
+     */
+    private void joinThreads(Exception e) {
         // Cleanup microphone.
-        Error error = new Error();
-        LOG.error("Client is joining threads to exit", error);
+        LOG.error("Client is joining threads to exit due to: " + e, e);
         try {
             if (this.audioInput != null) {
                 if (this.audioInput.micIsOpen()) {
@@ -1041,17 +1044,17 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
     }
 
     private void initialize(Properties props) {
-        // Required parameter
-        IAMAPIKey = props.getProperty("IAMAPIKey");
+        // Required parameters
+        watsonHost = props.getProperty("host");
+        keyIAMAPI = props.getProperty("IAMAPIKey");
         skillset = props.getProperty("skillset");
         
         // Optional parameters
+        watsonPort = props.getProperty("port");
+        
         language = props.getProperty("language");
         engine = props.getProperty("engine");
         
-
-        watsonHost = props.getProperty("host");
-        watsonPort = props.getProperty("port");
         String noSsl = props.getProperty("nossl", "false");
         watsonSsl = noSsl.equalsIgnoreCase("false");
         // the userId
@@ -1069,17 +1072,17 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
             java.util.logging.Logger.getLogger(OkHttpClient.class.getName()).setLevel(Level.FINE);
         }
 
+        LOG.info("WATSON HOST: " + watsonHost);
+        LOG.info("WATSON PORT (Optional): " + watsonPort);
+        LOG.info("SKILLSET: " + skillset);        
+        LOG.info("WATSON IAM API Key: " + (null == keyIAMAPI ? "null" : "*****"));        
         LOG.info("USER ID (Optional): " + userID);
         LOG.info("Language (Optional): " + language);
         LOG.info("Engine (Optional): " + engine);
-        LOG.info("WATSON HOST: " + watsonHost);
-        LOG.info("WATSON PORT: " + watsonPort);
-        LOG.info("SKILLSET: " + skillset);        
-        LOG.info("WATSON IAM API Key: *****");        
 
-        if (watsonHost == null || skillset == null || IAMAPIKey == null) {
-            LocalAudio.play(LocalAudio.ERROR_CONFIG);
-            throw new Error("Missing authentication information.  Aborting.");
+        if (StringUtils.isBlank(watsonHost) || StringUtils.isBlank(skillset) || StringUtils.isBlank(keyIAMAPI)) {
+            LocalAudio.playFlacFile(LocalAudio.ERROR_INVALID_CONFIG);
+            throw new Error("Missing required host, authentication or configuration information.  Check the configure.properties file.  Aborting...");
         }
 
         String defaultAudioPropertyValue = props.getProperty("useDefaultAudio", "true");
@@ -1119,11 +1122,11 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
             // Done with initialization
             LOG.info("Done setting up client.");
         } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException | ClassNotFoundException e) {
-            joinThreads();
-            LocalAudio.play(LocalAudio.ERROR_CONFIG);
+            joinThreads(e);
+            LocalAudio.playFlacFile(LocalAudio.ERROR_INVALID_CONFIG);
             throw new Error(e);
         } catch (Exception e) {
-            joinThreads();
+            joinThreads(e);
             throw new Error(e);
         }
 

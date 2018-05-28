@@ -1,5 +1,5 @@
 /**
- * Copyright 2016-2017 IBM Corporation. All Rights Reserved.
+ * Copyright 2016-2018 IBM Corporation. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,12 +17,12 @@
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Properties;
-//Import log4j classes.
-import org.apache.logging.log4j.Logger;
-
-import wa.client.Client;
 
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import wa.audio.LocalAudio;
+import wa.client.Client;
 
 
 /**
@@ -55,10 +55,19 @@ public class Driver {
     public static void main(String args[]) {
         Thread.currentThread().setName("Driver (main)");
         
-        LOG.info("Watson Driver (main) starting...");
+        LOG.info("Watson Assistant Solutions - Audio Client Driver (main) starting...");
         Client client = null;
         Properties properties = readProps();
         if (null == properties) {
+            LOG.error("The configure.properties was not found, could not be read, or is not in valid properties file format. The configure.properties file should be in the 'config' folder.");
+            try {
+                LocalAudio.playFlacFile(LocalAudio.ERROR_NO_CONFIG_FILE);
+            }
+            catch (Throwable t) {
+                // At this point - just exit
+                // (log it, just in case it helps improve the responses)
+                LOG.error("-- could not PLAY response audio due to: " + t,  t);
+            }
             System.exit(1);
         }
 
@@ -68,7 +77,7 @@ public class Driver {
         }
         catch (Throwable t) {
             // Any error from creating the client causes this to exit(2)
-            t.printStackTrace();
+            LOG.error("Problem trying to create and initialize the client: " + t, t);
             System.exit(2);
         }
 
@@ -99,21 +108,26 @@ public class Driver {
      * @return Properties or null if any error occurred.
      */
     private static Properties readProps() {
+        return readProps("./config/configure.properties");
+    }
+    
+    /* For unit testing */
+    static Properties readProps(String propFileName) {
         FileInputStream file = null;
         Properties props = null;
 
         try {
             Properties p = new Properties();
-            file = new FileInputStream("./config/configure.properties");
+            file = new FileInputStream(propFileName);
             p.load(file);
             props = p;
         } catch (Throwable t) {
             // Just return a null properties...
         } finally {
             try {
-            	if (null != file) {
-            		file.close();
-            	}
+                if (null != file) {
+                    file.close();
+                }
             } catch (IOException e) { }
         }
         return props;
