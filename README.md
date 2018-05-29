@@ -1,4 +1,4 @@
-# Reference implementation in Java for the Cognitive Spaces Websocket client
+# Reference implementation in Java for the Watson Assistant Solutions Audio Gateway client
 
 This application is responsible for audio streaming on the client to and from the server using the WebSocket protocol.  See the Client Interface Specification for details on the messages used to authenticate and converse with the server.
 
@@ -70,9 +70,7 @@ $ scp target/wpa-1.4-SNAPSHOT.jar  pi@192.168.1.101:~/watson
 ```
 
 ## Run
-Copy `configure.properties.example` to `configure.properties` into the the `~/watson/config` directory of the device.  Provide configuration and credential information and options by editing the following properties:
-
-The `start` directory contains startup scripts for both debug and non-debug modes. These scripts can be copied to the `watson` directory on the device.
+Copy `configure.properties.example` to `configure.properties` into the the `~/watson/config` directory of the device.  A properly configured `configure.properties` file must exist in the `~/watson/config` directory for the client to run. Provide configuration and credential information and options by editing the following properties:
 
 ### Required Connection Information
 * `host` The URL of the Audio Gateway server (should NOT include the protocol prefix such as "https://")
@@ -120,6 +118,15 @@ $ java -jar target/wpa-1.4-SNAPSHOT.jar
 * `logAdditionalAudioInfo` Log information about the size of the audio packets and the time to receive them.
 
 Note: the primary logging control is configured with the [Log4J Configuration](src/main/java/log4j2.xml). These controls will be moved there as specific loggers in the future.
+
+### Commands to Run the Client
+The `start` directory in the project contains startup scripts for both debug and non-debug modes. These scripts can be copied to the `~/watson` directory on the device and be used to run the client.
+
+The commands to run in standard mode are:
+(Raspberry Pi, Linux, Apple)
+`sudo java -jar wpa-1.4-SNAPSHOT.jar`
+(Windows)
+`java -jar wpa-1.4-SNAPSHOT.jar`
 
 
 ## Socket Interface
