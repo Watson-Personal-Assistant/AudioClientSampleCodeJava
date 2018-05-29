@@ -45,6 +45,19 @@ public class LocalAudio {
 
     public static final String ANNOUNCE_IP = "announce-ip";
 
+    /**
+     * Say the IP address locally. The format of the audio is:
+     * <bl>
+     *  <li> "The IP address is"
+     *  <li> number number number (first octet)
+     *  <li> "dot"
+     *  <li> number number number (second octet)
+     *  <li> "dot"
+     *  <li> number number number (third octet)
+     * <bl>
+     * 
+     * @param ip - InetAddress to announce
+     */
     public static void sayIP(InetAddress ip) {
         playFlacFile(ANNOUNCE_IP);
         byte[] octets = ip.getAddress();
@@ -59,13 +72,18 @@ public class LocalAudio {
         }
     }
 
+    /**
+     * Play a 'flac' audio file given a base file name.
+     * 
+     * @param audioNameBase - Base file name for the flac audio file (file name without the '.flac' extension
+     */
     public static void playFlacFile(String audioNameBase) {
         String resourceName = audioNameBase + ".flac";
         try (BufferedInputStream resourceStream = new BufferedInputStream(ClassLoader.getSystemClassLoader().getResourceAsStream(resourceName))){
 
             final AudioInputStream in = getAudioInputStream(resourceStream);
 
-            final AudioFormat outFormat = getOutFormat(in.getFormat());
+            final AudioFormat outFormat = getOutputAudioFormat(in.getFormat());
             final Info info = new Info(SourceDataLine.class, outFormat);
 
             try (final SourceDataLine line =
@@ -87,10 +105,16 @@ public class LocalAudio {
         }
     }
 
-    private static AudioFormat getOutFormat(AudioFormat inFormat) {
-        final int ch = inFormat.getChannels();
+    /**
+     * Get the output audio format corresponding to (matching the rate and channels of) an input audio format.
+     * 
+     * @param inputAudioFormat - Input AudioFormat to match
+     * @return AudioFormat to use for output
+     */
+    public static AudioFormat getOutputAudioFormat(AudioFormat inputAudioFormat) {
+        final int ch = inputAudioFormat.getChannels();
 
-        final float rate = inFormat.getSampleRate();
+        final float rate = inputAudioFormat.getSampleRate();
         return new AudioFormat(PCM_SIGNED, rate, 16, ch, ch * 2, rate, false);
     }
 

@@ -1,3 +1,4 @@
+package main;
 /**
  * Copyright 2018 IBM Corporation. All Rights Reserved.
  *
@@ -23,6 +24,8 @@ import org.apache.commons.lang3.StringUtils;
 /* JUnit imports */
 import org.junit.Test;
 
+import main.Driver;
+
 /**
  * JUnit test for the Driver (main) class.
  *
@@ -37,12 +40,14 @@ public class DriverTest {
      */
     @Test
     public void testReadProps() {
+		System.out.println("DriverTest.testReadProps()");
+    	Driver driver = new Driver();
         // Get the path to the test properties file
         ClassLoader classLoader = getClass().getClassLoader();
         File file = new File(classLoader.getResource("DriverTest.testReadProps.properties").getFile());
         String testPropsPath = file.getAbsolutePath();
         //System.out.println(testPropsPath);
-        Properties props = Driver.readProps(testPropsPath);
+        Properties props = driver.readProps(testPropsPath);
         assertNotNull("Properties object should not be null", props);
         // Test 'host'
         String value = props.getProperty("host");

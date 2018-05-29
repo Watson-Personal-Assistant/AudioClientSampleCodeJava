@@ -19,8 +19,14 @@ public interface StatusIndicator {
     /**
      * Turn on the indicator. This also cancels blinking.
      */
-
   void on();
+
+  /**
+   * Is the indicator on?
+   * 
+   * @return true if on
+   */
+  boolean isOn();
 
   /**
    * Turn off the indicator. This also cancels blinking.
@@ -28,9 +34,23 @@ public interface StatusIndicator {
   void off();
 
   /**
+   * Is the indicator off?
+   * 
+   * @return true if off
+   */
+  boolean isOff();
+  
+  /**
    * Blink the indicator at the specified on/off time rate.  This cancels any previous blinking.
    * 
    * @param onOffTime
    */
   void blink(long onOffTime);
+  
+  /**
+   * Is the indicator blinking?
+   * 
+   * @return true if blinking
+   */
+  boolean isBlinking();
 }

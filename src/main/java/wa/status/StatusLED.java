@@ -79,6 +79,11 @@ public class StatusLED implements StatusIndicator {
         return onState;
     }
 
+    
+	/* (non-Javadoc)
+	 * @see wa.status.StatusIndicator#on()
+	 */
+    @Override
     synchronized public void on() {
         cancelBlink();
         blueLedControl.high();
@@ -88,14 +93,45 @@ public class StatusLED implements StatusIndicator {
         onState = true;
     }
 
+	@Override
+	public boolean isOn() {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	/* (non-Javadoc)
+	 * @see wa.status.StatusIndicator#off()
+	 */
+    @Override
     synchronized public void off() {
         cancelBlink();
     }
 
+	/* (non-Javadoc)
+	 * @see wa.status.StatusIndicator#isOff()
+	 */
+	@Override
+	public boolean isOff() {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	/* (non-Javadoc)
+	 * @see wa.status.StatusIndicator#blink(long)
+	 */
     @Override
     public void blink(long onOffTime) {
         blinkThread(onOffTime).start();
     }
+
+	/* (non-Javadoc)
+	 * @see wa.status.StatusIndicator#isBlinking()
+	 */
+	@Override
+	public boolean isBlinking() {
+		// TODO Auto-generated method stub
+		return false;
+	}
 
 
     private Thread blinkThread(long onOffTime) {

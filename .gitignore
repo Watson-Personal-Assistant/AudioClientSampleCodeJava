@@ -1,4 +1,5 @@
 .idea/*
+.settings/org.eclipse.*
 .DS_Store
 target/*
 target-display/*
