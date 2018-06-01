@@ -12,7 +12,7 @@ For information about the audio gateway and the audio streaming interface, see [
 A number of options are provided with the audio client.
 
 #### Supported Operating Systems
-The client is developed for Raspberry PI.  However, with some minor modifications, you can deploy the client on a Windows or Mac OS operating system. You  might want to run the client locally during testing.  With a local build, you avoid having to download the client to a remote device and having to debug it remotely each time you make a change to the client.
+The client is developed for Raspberry PI.  However, with some minor modifications, you can deploy the client on another type of controller or on a Windows or Mac OS operating system. You  might want to run the client locally during testing.  With a local build, you avoid having to download the client to a remote device and having to debug it remotely each time you make a change to the client.
 
 #### Using the Eclipse IDE
 You might want to use a Java IDE to more easily modify and debug the audio client code.  Otherwise, you can use a text editor and maven to build the JAR file.  The procedure for customizing the audio client uses the Eclipse IDE but any Java IDE can be used.
@@ -47,8 +47,8 @@ Typically, you use the local speaker and microphone of the audio device. However
 
 ##### Using socket interfaces to the client
 The audio client provides socket interfaces to allow control of the audio client from a device controller and sending audio to and from the controller.  There are two socket interfaces:
-  - Command socket interface: The device controller sends text-based commands on the command socket interface to the audio client.  The audio client sends status messages and commands to the device controller. The port is set using the  `cmdSocketPort` property in the `configuration.properties` file.
-  - Audio socket interface: Audio is sent from the device controller to the client and from the client to the controller on an audio socket interface. The port is set using the  `audioSocketPort` property in the `configuration.properties` file.
+  - Command socket interface: The device controller sends text-based commands on the command socket interface to the audio client.  The audio client sends status messages and commands to the device controller. The port is set using the  `cmdSocketPort` property in the `configure.properties` file.
+  - Audio socket interface: Audio is sent from the device controller to the client and from the client to the controller on an audio socket interface. The port is set using the  `audioSocketPort` property in the `configure.properties` file.
 
 For example, the device controller wants to send audio to the audio client on the audio socket interface, but the client is not ready to process the audio. The device controller sends a RAS (a trigger to the client to read from the audio socket) command on the command socket interface.  The audio client responds with a `micWakeUpNotAllowed` status message.  The device controller waits for a `micWakeUpAllowed` status message and sends data to the audio client on the audio socket interface.
 
@@ -183,7 +183,7 @@ The commands to run the client for different operating systems are:
 Send audio data from the audio client to the audio gateway by waking the client up and asking a question. For example, `"Hello Watson, what is the weather like today`".
 
 #### Step 8: Monitor the flow of audio data.
-The audio client outputs the following characters to the console to indicate how well data is flowing.
+The audio client outputs the following characters to the console to indicate how data is flowing.
 
 | Character  |Progress indicator|
 |-----|:-------------------------------|
