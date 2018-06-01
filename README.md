@@ -1,258 +1,241 @@
-# Reference implementation in Java for the Watson Assistant Solutions Audio Gateway client
 
-This application is responsible for audio streaming on the client to and from the server using the WebSocket protocol.  See the Client Interface Specification for details on the messages used to authenticate and converse with the server.
+---
+Customizing  and deploying an audio client
+---
+In Watson Assistant Solutions, an audio client is responsible for streaming audio to and from the audio gateway using a web socket interface.
 
-The client is developed for a Raspberry Pi, but there are configuration options to also run it from a PC or Mac.  Other platforms can easily be adapted. These options can make it easier to develop and debug (not requiring a download to the device and remote debugging for each change).
+A sample audio client is provided with Watson Assistant Solutions.  You can customize the configuration of the sample client, build the client, and deploy the client to your device.
 
+For information about the audio gateway and the audio streaming interface, see [audio](http://ibm.biz/audio_interface) section of the product documentation.
 
-## Requirements
-* Java 8
-* Maven
+### About this task
+A number of options are provided with the audio client.
 
-Note: The build can be executed on any platform, and the resulting JAR deployed to the device. (e.g. Raspberry Pi)  To build directly on the Raspberry Pi, you may run into some trouble installing maven.  `apt-get install maven` brings in another JVM which conflicts with Java 8. One workaround is to install the Maven binary directly, as described here: https://www.xianic.net/post/installing-maven-on-the-raspberry-pi/
+#### Supported Operating Systems
+The client is developed for Raspberry PI.  However, with some minor modifications, you can deploy the client on another type of controller or on a Windows or Mac OS operating system. You  might want to run the client locally during testing.  With a local build, you avoid having to download the client to a remote device and having to debug it remotely each time you make a change to the client.
 
+#### Using the Eclipse IDE
+You might want to use a Java IDE to more easily modify and debug the audio client code.  Otherwise, you can use a text editor and maven to build the JAR file.  The procedure for customizing the audio client uses the Eclipse IDE but any Java IDE can be used.
 
-## Synthesize Local Status Sound Files (if needed)
-The client uses some local [FLAC](https://xiph.org/flac/) sound files to provide status and error messages without needing to access the text to speech service. For example, it can announce that it cannot connect to the server or that the configure.properties file wasn't found.
+Maven is embedded in the Eclipse `.project` file that is provided with the sample audio client. Maven is configured to include debug information.  You can run the audio client on Raspberry PI in debug mode but still debug the code from the Eclipse IDE.
 
-The files used to build the JAR are in the `speech` directory. The `synthesize.sh` command can be used to regenerate them if needed. The text used for the different messages is contained in the `synthesize.sh` command.
+**Important**: If you are using the Eclipse IDE and you are deploying to a device (Raspberry Pi), you must build the JAR file using maven from the command-line to build a correctly configured JAR file.
 
-To run the command `TTS_USERNAME` and `TTS_PASSWORD` environment variables must be set with Watson Text-to-Speech service credentials.
+#### Error and status messages
+The sample audio client provides some FLAC sound files that are used to provide status and error messages.  If you cannot connect to the audio gateway, you are unable to use its text-to-speech service for messages. Instead, you can use FLAC files to play messages through your speaker.  For example, if the `configure.properties` file is not found, a message announcing that the file is not found is played through the speaker.
 
+The FLAC sound files are in the `speech` directory of the sample audio client.  If you want to edit the message that is played,  complete these steps:
+1. Set the TTS_USERNAME and TTS_PASSWORD environment variables to the Watson Text-to-speech service credentials.  For example:
+On Linux and MAC OS
 ```
-$ TTS_USERNAME=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxx
-$ TTS_PASSWORD=xxxxxxxxxxxx
-$ ./synthesize.sh
+$ export TTS_USERNAME=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+$ export TTS_PASSWORD=xxxxxxxxxxxx
+```
+2. Go to `AudioClientSampleCodeJava` top-level directory.
+3. Open the `synthesize.sh` file in a text editor.
+4. Edit the content of message according to the needs of your environment.  For example:
+   Change the line
+  `synthesize "The configure properties file was not found" error-no-config-file`
+   to
+  `synthesize "Sorry, could not find the configure properties file" error-no-config-file`
+5. To recompile the message, enter: `./synthesize.sh`.
+For more information about the FLAC file format, see the [FLAC page](https://xiph.org/flac/) on the xiph.org website.
+
+#### Using a device controller
+Typically, you use the local speaker and microphone of the audio device. However, you might have a smart speaker in your environment that you would like to use to perform external processing or you might have additional device controls, for example, for volume or display. Watson Assistant Solutions provides you with the option to use your own smart speaker and microphone with the audio client. The smart speaker acts as a device controller for the audio client. You use a command socket interface to send commands between the device controller and the audio client and an audio socket interface to send audio.
+
+
+##### Using socket interfaces to the client
+The audio client provides socket interfaces to allow control of the audio client from a device controller and sending audio to and from the controller.  There are two socket interfaces:
+  - Command socket interface: The device controller sends text-based commands on the command socket interface to the audio client.  The audio client sends status messages and commands to the device controller. The port is set using the  `cmdSocketPort` property in the `configure.properties` file.
+  - Audio socket interface: Audio is sent from the device controller to the client and from the client to the controller on an audio socket interface. The port is set using the  `audioSocketPort` property in the `configure.properties` file.
+
+For example, the device controller wants to send audio to the audio client on the audio socket interface, but the client is not ready to process the audio. The device controller sends a RAS (a trigger to the client to read from the audio socket) command on the command socket interface.  The audio client responds with a `micWakeUpNotAllowed` status message.  The device controller waits for a `micWakeUpAllowed` status message and sends data to the audio client on the audio socket interface.
+
+##### Command socket interface
+You can test the command socket interface using telnet. Complete these steps:
+1. Establish a telnet connection to the audio client on the command port.
+2. Wait for the client to respond with OK.
+3. Send a command and terminate the command with a carriage return.
+
+Table 1 displays the commands from the device controller to the client.
+
+|Command |Description|
+|-----|:-------------------------------|
+| `OS`   |Send output to the speaker.|
+| `OAS`  |Send output to the audio socket. |
+| `RM`   |Read the microphone (trigger).  |
+| `RAS`  |Read the audio socket (trigger).|
+| `EXIT` |Disconnect.|
+
+Table 2 displays the responses from the audio client to the device controller.
+
+|Command |Description|
+|-----|:-------------------------------|
+| `OK`   |Command was received and is acknowledged.|
+| `?`  | An unknown command was received. |
+| `DONE`   |The client was told to disconnect.  |
+| `micWakeUpNotAllowed`  |The client will not respond to the wake up command trigger.|
+| `micWakeUpAllowed` |The client will respond to the wake up command trigger.|
+| `micOn` | The client is expecting audio.  |
+| `micOff` |The client is not expecting audio.
+
+Table 3 displays the status messages from the audio client to the device controller to show the status of the connection to the audio gateway.
+
+|Command |Description|
+|-----|:-------------------------------|
+| `serverConnected`  | The client is connected to the server but is not yet ready to start.  |
+| `serverConnecting`  | The client is attempting to connect to the server.  |
+| `serverConnectionReady`   | The client is connected and is ready to start. |
+| `serverNotConnected `  | The client is not connected to the server. |
+
+##### Audio socket interface
+The audio socket interface sends and receives audio data streams in binary format. Currently, the format is fixed as follows:
+  - Input: audio/l16 (PCM, SampleRate=16,000, Channels=1, Bits=16)
+  - Output: audio/l16 (PCM, SampleRate=16,000, Channels=1, Bits=16)
+
+If the controller sends an OAS command for diverting audio output to the audio socket, the controller must be ready to receive audio data and process it (that is, play it). No command is sent from the client to indicate that audio data will be sent.
+
+When the controller sends a RAS command to trigger the reading of audio data from the audio socket, the client responds with a `micOn` response and starts to read data from the audio socket. The audio data is sent to the Watson server for transcription. Once the transcription has responded with an acceptable confidence level, the client sends a `micClose` response. Any further data that is received on the audio socket is discarded.
+
+#### Sending audio to the audio gateway
+For information about the flow of audio streaming from the audio client to the audio gateway in Watson Assistant Solutions, see the _How audio input is processed_ topic in the product documentation.  If you plan to use a device controller, see the _How audio input is processed with a controller_ topic in the product documentation.
+
+For a specification of the communication messages that are sent between the audio client and the audio gateway on the web socket interface, see the _Audio streaming interface specification_ topic in the product documentation.
+
+### Before you begin
+1. Install [Java 8](https://developer.ibm.com/javasdk/downloads/sdk8/).
+2. Install [Maven](https://maven.apache.org/).  If you install Maven on Raspberry PI, you might encounter an issue.  The install command `apt-get install maven` introduces a JVM that has a conflict with Java 8. To fix the issue, install the Maven binary directly on Raspberry PI.  Following the instructions [here](https://www.xianic.net/post/installing-maven-on-the-raspberry-pi/).
+3. Install the [Eclipse IDE](https://www.ibm.com/cloud/eclipse).
+
+### Procedure
+Complete these steps to deploy the sample audio client to your device and to test the streaming of audio data:
+
+#### Step 1: Clone the audio client GIT repository.
+1.  Copy the  audio client repository to your local system.
+    1. Go to [audio client sample Java code repository](https://github.com/Watson-Personal-Assistant/AudioClientSampleCodeJava).
+    2. Click Fork to take a copy of the repository.
+    3. Click Clone or download. Copy the GIT url.
+    4. Open a command-line terminal and enter<br>`git clone git_url`
+2. Install the node dependencies for the audio client.
+    1. Enter `cd AudioClientSampleCodeJava`.
+    2. Enter `npm install`.
+
+#### Step 2: Import the audio client project into the Eclipse IDE.
+1. Start Eclipse. Click `eclipse.exe`.
+2. Specify a workspace to use.
+3. Import the Eclipse project for the sample audio client.
+  1. Go to File > Import.
+  2. Under General, select `Existing Projects into Workspace` and click Next.
+  3. Enable the ` Select root directory` option.
+  4. Click Browse to locate the `.project` file in the top-level directory of your audio client.
+  4. Click Finish.  Your audio client project is displayed in the Project Explorer.
+
+#### Step 3: Customize your audio client.
+1.  Copy the `configure.properties.example` file from the `AudioClientSampleCodeJava` directory and rename it to `configure.properties`.
+2. Modify the parameters in Table 1 to suit your environment.
+
+Table 1 - Audio client configuration parameters
+
+| Parameter  |Description | Type |
+|-----|:-------------------------|:----------------|
+| `host` (mandatory)  | The URL of the audio gateway.  The URL is `wa-audio-gateway.mybluemix.net`. Note: Do not include the protocol prefix, for example, `https://` |Audio gateway connection parameter |
+| `IAMAPIKey` (mandatory) | The client IAM API key for the device.  |Audio gateway connection parameter |
+| `skillset`  | The skillset to be used by the audio client.  | Audio gateway connection parameter  |
+| `engine `  | The speech-to-text (STT) engine that the audio gateway must use to convert speech to text.  Valid values are `watson` or `google`.  The default value is `google`.   | Speech-to-text parameter |
+| `urltts`  | If set to `true`, the audio gateway plays back audio from a URL.  If set to `false`, the gateway streams audio using data messages.  The default value is `false`.  | Audio response type parameter |
+| `cmdSocketPort`  | The port to use for external commands. The default port is 10010.  |External control parameter |
+| `audioSocketPort`  | The port to use for audio streaming.  The default port is 10011.   |External control parameter |
+| `statusPingRate`  |The rate at which the audio client sends operational status messages to its controller in milliseconds.  | External control parameter |
+| `useDefaultAudio`  | If set to `true`, use the default audio output of the device.  For example, on Raspberry Pi, the default output is an aux jack.  If you are using a USB speaker, set the value to `false`.  **Tip**: If no audio is heard, change the value of this parameter.  | Audio output parameter |
+| `voice`  | The text-to-speech service to use.  The default value is en-US-LisaVoice.  |Text-to-speech parameter |
+| `nogpio`   | If set to `true`, use the enter key and console for the wake up command. Use the console for status. This allows the client to run on platforms other than a Raspberry Pi (for example, Mac OS and Windows). Note: This option can also be used on a Raspberry Pi to allow it to be controlled through the console rather than by connecting it to a switch and LED.  The default value is `false`. If set to `false`, use the GPIO-connected push-to-talk switch for wake-up and use an LED that is connected to GPIO for status.  **Important**: To enable a user account to have access to GPIO without a sudo, set `WIRINGPI_GPIOMEM=1` on the Raspberrry Pi. | Raspberry Pi configuration parameter |
+| `nossl`  |If set to `true`, connect to the gateway without using an SSL protocol.  The value is set to `false` by default.    | SSL parameter |
+| `debug`  |  If set to true, creates additional log information.  The value is set to `false` by default. | Logging parameter |
+| `logAdditionalAudioInfo`  | If set to `true`, log information about the size of the audio packets and the time taken to receive them. | Logging parameter |
+
+
+#### Step 4: Build the audio client JAR file.
+To build the package, go to the top-level directory of your audio client.  From the command-line enter: `mvn package`.
+A JAR file for the audio client is created in the `target/` directory. The file name includes a version number.  Each build includes a `-SNAPSHOT` suffix.
+
+#### Step 5: Deploy the audio client JAR file to your device.
+Copy the audio client JAR file from the `/target` directory to the `/watson` directory on your device.  For example:
+`$ scp target/wpa-1.4-SNAPSHOT.jar pi@192.168.1.15:~/watson`
+
+#### Step 6: Start the audio client.
+Go to the `start` directory of the audio client on your device.
+To start the audio client, enter `./run.sh`. To start the audio client in debug mode, enter `./rundebug.sh`.
+
+The commands to run the client for different operating systems are:
+- Raspberry Pi:
+    sudo java -jar wpa-1.4-SNAPSHOT.jar 
+- Mac OS:
+    java -jar wpa-1.4-SNAPSHOT.jar 
+- Linux:
+    java -jar wpa-1.4-SNAPSHOT.jar 
+- Windows:
+    java -jar wpa-1.4-SNAPSHOT.jar 
+
+('sudo' is required for Raspberry Pi in order to access the GPIO functionality)
+
+#### Step 7: Send audio data from the audio client.
+Send audio data from the audio client to the audio gateway by waking the client up and asking a question. For example, `"Hello Watson, what is the weather like today`".
+
+#### Step 8: Monitor the flow of audio data.
+The audio client outputs the following characters to the console to indicate how data is flowing.
+
+| Character  |Progress indicator|
+|-----|:-------------------------------|
+| %  | Reading a chunk of audio from the local microphone. |
+| <   | Reading a chunk of audio from an audio socket.  |
+| ~  | No audio is received from either the local microphone or audio socket.  |
+| ^   | Sending audio to the audio gateway.  |
+| &   | Receiving audio from the audio gateway. |
+| @   | Sending audio to a local speaker.  |
+| >   | Sending audio to an audio socket.  |
+| #   | Reading from the audio socket to drain excess input.   |
+
+The following sample output indicates that audio data is being read from an audio socket and is being sent to the audio gateway:
+```
+<^<^<^<^<^<^<^<^<^<^<^<^<^<^<^
+```
+The following sample output indicates that audio data is being received from the audio gateway and is being sent to an audio socket.
+```
+&>&>&>&>&>&>&>&>&>&>
 ```
 
-
-## Build the JAR
-The maven `package` phase will generate a build. The result is a jar file in the `target/` directory with the version number embedded in the filename.  By convention, builds between releases will carry the `-SNAPSHOT` suffix.
-
+The following sample output indicates that audio data is being read from a local microphone and is being sent to the audio gateway.
 ```
-$ mvn package
+%^%^%^%^%^%^
 ```
 
-
-## Development and Debugging (ability to use Eclipse IDE)
-**For deployment to a device (e.g. Raspberry Pi) the Maven build must be run from the command line (to create a correctly configured JAR)**
-
-# Instructions for Eclipse
-These instructions are for Eclipse, but those of you that use other IDE's can probably adapt to these instuctions.
-
-For development and debugging - an `Eclipse project` has been created.  Find it as `.project` in the main folder.
-
-Using a dedicated Java IDE like Eclipse can provide significant benefits during development (and especially debugging).  The Eclipse project is configured to function as a Maven Project/Build.  This means you can edit, build, and debug directly from Eclipse. Remote debugging is also possible.  The Maven build is configured with debug information, so if you run the client on the Raspberry Pi in debug mode you can connect to it from Eclipse and debug interactively.
-
-Create a new workspace and import the project (as an existing Eclipse project).
-
-You can run and debug the client within Eclipse - just set up a 'Run/Debug' configuration with the main class of 'Driver'.
-
-To debug remotely on the Raspberry Pi:
-	An example command to run the client in remote debug mode is:
-	`sudo java -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8000 -jar wpa-1.4-SNAPSHOT.jar`
-	In Eclipse, simply configure a 'Debug Configuration' that specifies the IP address and port of the target and the main class: `Driver`
-
-The `start` directory contains startup scripts for both debug and non-debug modes. These scripts can be copied to the `watson` directory on the device.
-
-To Run/Debug directly from Eclipse (on the local machine) you will need to set up a local Run/Debug configuration.  The main requirement for this is that you will need to indicate that the working directory is the `target/` directory and make sure that the config directory includes a properly configured `configure.properties` file (the Eclipse build does not put one there, so if a 'clean' build is performed there will not be a `configure.properties` file in the directory.  If the `configure.properties` file doesn't exist in the `config` directory the client should announce that to you (a good test really...).
-
-*(as we find and resolve problems with the Eclipse project, we will add to this section - for example, a 'clean' build will delete 'target', so we probably want a build step to copy a `configure.properties` in at the end of the build.)*
-
-
-## Deploy
-Our standard deployment to a device is into the ~/watson directory.
-
-Copy the jar (created using the `maven package` command) from the `target/` directory on your local system to the device `~/watson` directory, e.g.
-
+The following sample output indicates that audio data is being received from the audio gateway and is being sent to a local speaker.
 ```
-$ scp target/wpa-1.4-SNAPSHOT.jar  pi@192.168.1.101:~/watson
+&@&@&@&@&@&@&@&@&@&@&@&@&@
 ```
 
-## Run
-Copy `configure.properties.example` to `configure.properties` into the the `~/watson/config` directory of the device.  A properly configured `configure.properties` file must exist in the `~/watson/config` directory for the client to run. Provide configuration and credential information and options by editing the following properties:
-
-### Required Connection Information
-* `host` The URL of the Audio Gateway server (should NOT include the protocol prefix such as "https://")
-* `IAMAPIKey` The client IAM API Key associated with the device in the IBM cloud IAM management system
-* `skillset` The skillset to be used by this client
-
-### Optional Settings
-
-#### Speech to text engine
-The server supports two STT engines out of the box - Watson STT and Google STT 
-* `engine` - if you use the value `watson`, the server will use the Watson STT for converting audio to text, if you use `google` the server will use the Google STT. (default=google)
-
-#### Audio Response via URL or Streaming
-The server supports returning the response via an audio URL or by streaming the audio to the client.
-* `urltts` (if `true` the server will respond with a URL, if `false` the server will stream the audio (using `audio_data` messages) - default=false)
-
-#### Socket Connection
-The client provides a socket connection for an external controller for commands and audio (see following section).  
-These properties allow configuring the ports used by those connections and a client status ping.
-* `cmdSocketPort` (default=10010)
-* `audioSocketPort` (default=10011)
-* `statusPingRate` The rate at which the client will send operational status messages to a controller
-
-#### Audio Output
-* `useDefaultAudio` Use the system's default audio output for speaker (aux jack on Raspberry Pi).  Typically should be set to `false` if using a USB speaker.  However, if no audio is heard, try switching this property. (default=true)
-
-#### Voice
-* `voice` Set to a Watson TTS voice, uses en-US_LisaVoice by default.
-
-#### Raspberry Pi GPIO Use
-* `nogpio` Will use the enter key for wake up instead of a push-to-talk switch connected to GPIO and use the console for status rather than an LED wired to GPIO. This allows the client to run on platforms other than a Raspberry Pi (like a PC/Mac). *Note that this option can also be used on a Raspberry Pi to allow it to be controlled through the console rather than wiring up a switch and LED*  (default=false)
-
-Note: Setting `WIRINGPI_GPIOMEM=1` on a Raspberry Pi enables a user account to access GPIO without `sudo`
-
+The following sample output indicates that excess audio data is being read from the audio socket to clear it after a micClose command was sent.
 ```
-$ export WIRINGPI_GPIOMEM=1
-$ java -jar target/wpa-1.4-SNAPSHOT.jar
+######
 ```
 
-#### SSL Use
-* `nossl` To connect to server without SSL protocols (http/ws instead of https/wss)  (default=false)
+#### Step 9: View log data.
+Review the log file, if required.  The audio client uses Log4J.  The logging configuration file is in `config/log4j2.xm`l.
+For more information about configuring logging, see the [LOG4J website](https://logging.apache.org/log4j/2.x/manual/appenders.html).
 
-#### Logging
-* `debug` generates additional log information. Defaults to false.
-* `logAdditionalAudioInfo` Log information about the size of the audio packets and the time to receive them.
+### Result
+The audio client is configured on your device and you have tested the streaming of audio data to the audio gateway.
 
-Note: the primary logging control is configured with the [Log4J Configuration](src/main/java/log4j2.xml). These controls will be moved there as specific loggers in the future.
+### What to do next
+Learn more about setting up an audio client on Raspberry PI.
 
-### Commands to Run the Client
-The `start` directory in the project contains startup scripts for both debug and non-debug modes. These scripts can be copied to the `~/watson` directory on the device and be used to run the client.
+Figure 1 shows a schematic of the client status indicator.
+![client status indicator](Client-Status-Indicator-Schematic.jpg)
 
-The commands to run in standard mode are:
-(Raspberry Pi, Linux, Apple)
-`sudo java -jar wpa-1.4-SNAPSHOT.jar`
-(Windows)
-`java -jar wpa-1.4-SNAPSHOT.jar`
+Figure 2 shows an example of how to set up Raspberry PI.
+![status panel breadboard](Status-Panel-Breadboard.jpg)
 
-
-## Socket Interface
-The client provides a socket command and audio interface to allow remote control of the client (rather than through the GPIO, local microphone, and speaker).
-
-### Command Socket Interface
-The command socket:port provides a simple text based interface for commands to be sent to the client and for the client to send status and commands back to the controller. This interface can be easily tested with a tool like `telnet`.  Using `telnet` you can connect to the command port (as configured with the `cmdSocketPort` in configure.properties). The client will respond with `OK` and the communication can begin.  Each command is terminated with a carriage return.
-
-The commands from the controller to the client are:
-* `OS` - Output to speaker
-* `OAS` - Output to Audio Socket
-* `RM` - Read microphone (trigger)
-* `RAS` - Read Audio Socket (trigger)
-* `EXIT` - Disconnect
-
-Responses and commands from the client are:
-* `OK` - Command received and acknowledged
-* `?` - Unknown command
-* `DONE` - Client has been told to disconnect
-* `micWakeUpNotAllowed` - Client will not respond to a wake-up trigger request
-* `micWakeUpAllowed` - Client will accept a wake-up trigger to start accepting audio
-* `micOn` - Client is expecting audio
-* `micOff` - Client is not expecting audio
-Commands sent from the client for control of the response play back.
-It is suggested that a controller support these, but it's not required.
-* `playbackResume` - The user is requesting that the response be resumed if possible
-* `playbackStop` - The user is requesting that the response be stopped
-* `volumeDown` - The user is requesting that the volume be turned down
-* `volumeUp` - The user is requesting that the volume be turned up
-* `volumeMute` - The user is requesting that the output be muted (this should not stop the response)
-* `volumeUnmute` - The user is requesting that the output be un-muted
-
-Status messages        
-* `serverConnected` - Client is connected to the server (but not yet ready to operate)
-* `serverConnecting` - Client is attempting to connect to the server
-* `serverConnectionReady` - Client is connected and ready
-* `serverNotConnected` - Client is not connected to a server
-
-### Audio Socket Interface
-The audio socket:port is used in conjunction with the `OAS` and `RAS` commands. The `OAS` command directs the audio data to be sent to the audio socket interface rather than directly to the local speaker.  The `RAS` command instructs the client to read from the audio socket interface rather than directly from the local microphone.
-
-The audio socket interface sends/receives a binary audio data stream.
-
-Currently the format is fixed at:
-* Input: `audio/l16` (PCM, SampleRate=16,000, Channels=1, Bits=16)
-* Output: `audio/l16` (PCM, SampleRate=16,000, Channels=1, Bits=16)
-
-*(future releases are expected to add commands to configure the audio data format)*
-
-If the `OAS` command is sent the controller should continuously be ready to receive audio data and process it (play it).  No command is sent from the client to indicate that audio data is forthcoming.
-
-When the `RAS` command is sent on the command socket the client will respond with a `micOpen` response and start reading data from the audio socket.  The audio data is sent to the Watson server for transcription.  Once the transcription has responded with an acceptable confidence level the client will send a `micClose` response on the command socket. Any further data received on the audio socket will be discarded.
-
-
-## Audio Data Flow Indication in Console Logging
-To help with debugging, the client outputs some characters to the console that indicate how audio data is flowing. For performance reasons these are written directly to the console and not to the log file.
-
-Audio data flow is indicated by:
-* `%` - Read chunk from local microphone
-* `<` - Read chunk from audio socket
-* `~` - No audio data received when reading from current source (microphone or socket)
-* `^` - Write to Watson server
-* `&` - Receive audio from Watson server
-* `@` - Output to local speaker
-* `>` - Output to audio socket
-* `#` - Read from audio socket to drain excess input
-
-For example:
-* `<^<^<^<^<^<^<^<^<^<^<^<^<^<^<^` indicates that data is being read from the audio socket and sent to the Watson server
-* `&>&>&>&>&>&>&>&>&>&>` indicates that audio data is being received from the Watson server and sent to the audio socket
-* `%^%^%^%^%^%^` indicates that data is being read from the local microphone and sent to the Watson server
-* `&@&@&@&@&@&@&@&@&@&@&@&@&@` indicates that audio data is being received from the Watson server and sent to the local speaker
-* `######` indicates that excess audio data is being read from the audio socket to clear it after a `micClose` command was sent
-
-## Logging Configuration
-The client uses Log4J for logging.
-
-The logging configuration is config/log4j2.xml
-There is a default configuration file there.  If a file isn't found the logging defaults to 'INFO+".
-Refer to the log4J2.xml for logging classes an to the Log4J site logging.apache.org/log4j/ for information about configuring the logging.
-
-Note that the Log4J library supports a number of 'Appenders' that can write to logs, send emails, text-message, and more and can be configured in the log4j2.xml file.  Refer to https://logging.apache.org/log4j/2.x/manual/appenders.html
-
-## Design
-The [main application loop](src/main/java/Driver.java) is responsible for initiating the connection to the server and retrying on network failure.  The application will exit if there is a configuration or other error which does not appear to be recoverable (e.g. authentication failure)
-
-Once the client authenticates with the server by requesting a token over HTTP, a long-running WebSocket is created with that token. A typical conversation consists of the following repeating steps:
-
-1. An interrupt begins the conversation (such as one triggered on the device by a hotword)
-1. The [Audio Input thread](src/main/java/wa/audio/AudioInput.java) sends an `audio_start` message to the server via the WebSocket
-1. The audio input thread captures audio and writes it to the WebSocket using `audio_data` messages until either the server responds or a timeout period has elapsed.  An `audio_end` message will follow, signaling the end of the microphone data.
-1. If the server does respond to the captured audio, the incoming `audio_start` message on the [client thread](src/main/java/wa/client/Client.java) pauses the microphone, then writes the audio received from the server `audio_data` messages to a buffer.
-1. That buffer is consumed by another thread controlling the [Audio Out](src/main/java/wa/audio/AudioOutput.java).  
-1. Identifiers on each server response are used to prevent overlapping responses and invalid client states.  In such cases, the last server response wins.
-1. An incoming `audio_end` signals the end of incoming audio to output.  If an `audio_end` is not received after a timeout period, the output is closed.  This is done to prevent waiting forever should there be an incomplete transmission from the server.
-1. The client waits for a new interrupt and a new spoken phrase, unless there is a prompt in the conversation, in which case Audio Input capture is started again.
-
-### Client Operational Control
-The client processes *Command Cards* received from the server. The content of the card can perform operations like stopping the response play back, increasing or decreasing the volume, and more.
-
-Currently, the client processes the command card and issues a corresponding command to a controller connected to the socket interface (the client does not yet respond to the commands when running stand-alone).
-
-For example, the response JSON can contain a `card` key with a value in the form: `{"type":"command","content":{"feature":"volume","action":"increase"}}`
-The client checks the response for a `card` and if found checks for a `type` of `command`.
-The following *features - Actions* are supported:
-* Playback - Stop
-* Playback - Resume
-* Volume - Decrease
-* Volume - Increase
-* Volume - Mute
-* Volume - UnMute
-
-
-## Raspberry PI Example Setup
-
-![Schematic](assets/Client-Status-Indicator Schematic.pdf)
-
-<img src="assets/Status-Panel-Breadboard.jpg" alt="Breadboard" width="600" />
-
-
-GPIO 'Pin' numbers: (BCM/WIRINGPI/Physical)
-GND (Any of (physical) pins: 6,9,14,20,25,30,34,39)
-
-Wake-Up Switch: GPIO 12/26 (Pin 32)
-Mute/Diagnostic Switch: GPIO 16/27 (Pin 36)
-
-Red LED: GPIO 25/6 (Pin 22)
-Green LED: GPIO 24/5 (Pin 18)
-Blue LED: GPIO 23/4 (Pin 16)
+- GPIO 'Pin' numbers: (BCM/WIRINGPI/Physical) GND (Any of (physical) pins: 6,9,14,20,25,30,34,39)
+- Wake-Up Switch: GPIO 12/26 (Pin 32) Mute/Diagnostic Switch: GPIO 16/27 (Pin 36)
+- Red LED: GPIO 25/6 (Pin 22) Green LED: GPIO 24/5 (Pin 18) Blue LED: GPIO 23/4 (Pin 16)
