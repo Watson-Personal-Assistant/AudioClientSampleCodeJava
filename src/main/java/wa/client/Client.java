@@ -82,7 +82,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
 
     private WebSocket webSocket;
 
-    private String IAMAccessToken = null;
+    private String iamAccessToken = null;
     
     private String skillset = null;
 
@@ -97,10 +97,6 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
     private Boolean watsonSsl = true;
 
     private String userID = null;
-
-    private Debouncer<String> debouncer;
-
-    private final int watchDogTimeout = 5000;
 
     private String watsonVoice = null;
 
@@ -305,7 +301,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
                     }
                     if (ServerConnectionStatus.NOTCONNECTED == getServerConnectionStatus()) {
                     		// IAMAccessToken should be retrieved from the IAM service by providing it with your cloud API Key (based on your IBM ID)
-                        IAMAccessToken = getIAMAccessToken(keyIAMAPI);
+                        iamAccessToken = getIAMAccessToken(iamAPiKey);
 
                         // We need to connect...
                         connect();
@@ -930,7 +926,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
 
     private int writeToServerCount;
     private int writeToServerBytes;
-	private String keyIAMAPI;
+	private String iamAPiKey;
 
     public synchronized void clearServerWriteLogging() {
         writeToServerCount = 0;
@@ -1046,7 +1042,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
     private void initialize(Properties props) {
         // Required parameters
         watsonHost = props.getProperty("host");
-        keyIAMAPI = props.getProperty("IAMAPIKey");
+        iamAPiKey = props.getProperty("IAMAPIKey");
         skillset = props.getProperty("skillset");
         
         // Optional parameters
@@ -1075,12 +1071,12 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
         LOG.info("WATSON HOST: " + watsonHost);
         LOG.info("WATSON PORT (Optional): " + watsonPort);
         LOG.info("SKILLSET: " + skillset);        
-        LOG.info("WATSON IAM API Key: " + (null == keyIAMAPI ? "null" : "*****"));        
+        LOG.info("WATSON IAM API Key: " + (null == iamAPiKey ? "null" : "*****"));        
         LOG.info("USER ID (Optional): " + userID);
         LOG.info("Language (Optional): " + language);
         LOG.info("Engine (Optional): " + engine);
 
-        if (StringUtils.isBlank(watsonHost) || StringUtils.isBlank(skillset) || StringUtils.isBlank(keyIAMAPI)) {
+        if (StringUtils.isBlank(watsonHost) || StringUtils.isBlank(skillset) || StringUtils.isBlank(iamAPiKey)) {
             LocalAudio.playFlacFile(LocalAudio.ERROR_INVALID_CONFIG);
             throw new Error("Missing required host, authentication or configuration information.  Check the configure.properties file.  Aborting...");
         }
@@ -1201,7 +1197,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
                     + (watsonPort == null ? "" : ":" + watsonPort) + "?skillset=" + skillset+"&userID=" + userID + "&language=" + language + "&engine=" + engine;
             Request request = new Request.Builder()
                     .url(webSocketUrl)
-                    .addHeader("Authorization", "Bearer " + IAMAccessToken)
+                    .addHeader("Authorization", "Bearer " + iamAccessToken)
                     .build();
 
             // initialize the watch dog
