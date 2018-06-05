@@ -15,6 +15,7 @@ package wa.client;
  * limitations under the License.
  */
 
+
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -50,20 +51,21 @@ import wa.audio.AudioOutput;
 import wa.audio.AudioPlayer;
 import wa.audio.AudioSocket;
 import wa.audio.LocalAudio;
+import wa.commonLogging.CommonLogging;
 import wa.network.LocalNetworkInterface;
 import wa.status.StatusConsole;
 import wa.status.StatusIndicator;
 import wa.status.StatusLED;
 import wa.status.StatusPing;
 import wa.util.CallStack;
-import wa.util.Debouncer;
 import wa.util.Utils;
 
 public class Client extends WebSocketListener implements ThreadManager, Runnable {
-    // Initialize our loggerLOG_SERVER_COMM_RECEIVE
+    // Initialize our loggers LOG_SERVER_COMM_RECEIVE
     private static final Logger LOG = LogManager.getLogger(Client.class);
-    private static final Logger LOG_SERVER_COMM_RECEIVE = LogManager.getLogger("GLOBAL.Server.Communication.Receive");
-    private static final Logger LOG_SERVER_COMM_SEND = LogManager.getLogger("GLOBAL.Server.Communication.Send");
+    private static final Logger LOG_SERVER_COMM_RECEIVE = CommonLogging.LOG_SERVER_COMM_RECEIVE;
+    private static final Logger LOG_SERVER_COMM_SEND = CommonLogging.LOG_SERVER_COMM_SEND;
+    
 
     private static final int MIN_RETRY_DELAY = 8;
     private static final int MAX_RETRY_DELAY = 15;
@@ -109,8 +111,6 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
     private Boolean enableResponseUrlProcessing;
 
     private Boolean debug;
-
-    private Boolean logAdditionalAudioInfo;
 
     private Constructor wakeupClassCtor;
 
@@ -865,9 +865,6 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
             Iterator bufferIterator = bufferData.iterator();
             int dataLength = bufferData.length();
             byte[] speakerData = new byte[dataLength];
-            if (logAdditionalAudioInfo) {
-                LOG.debug(String.format("AD: \"%d\"", dataLength));
-            }
 
             audioPacketCount++;
             audioDataSize += dataLength;
@@ -900,12 +897,8 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
 
 
             // Output performance data
-            if (logAdditionalAudioInfo) {
-                long sttResponseTime = transcriptReceivedTime - openMicTime;
-                long responseTime = responseReceivedTime - transcriptReceivedTime;
-                long audioStartTime = audioStartReceivedTime - transcriptReceivedTime;
-                long audioDataTime = audioEndReceivedTime - audioStartReceivedTime;
-                LOG.info(String.format("PERF: \tSTT-Returned=%d \tResponse=%d \tAudio-Start=%d \tAudio-Data-Time=%d \tAudio-Packets=%d \tAudio-Data-Size=%d", sttResponseTime, responseTime, audioStartTime, audioDataTime, audioPacketCount, audioDataSize));
+            if (CommonLogging.isPerfomanceLogEnabled()) {
+                CommonLogging.logPerformance(this.getClass().getSimpleName(), "handleAction", openMicTime, audioStartReceivedTime, "Open mic to Audio Start (received)", "This is the time from the wake-up trigger to the point that audio has been received");
             }
 
             audioOutput.finish();
@@ -987,7 +980,8 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
 
         this.audioInput.setInputSource(inputSource);
         // Clear our performance values
-        if (logAdditionalAudioInfo) {
+        // Output performance data
+        if (CommonLogging.isPerfomanceLogEnabled()) {
             openMicTime = System.currentTimeMillis();
             transcriptReceivedTime = 0;
             responseReceivedTime = 0;
@@ -1062,7 +1056,6 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
         debug = props.getProperty("debug", "false").equalsIgnoreCase("true");
         enableResponseUrlProcessing = props.getProperty("urltts", "true").equalsIgnoreCase("true");
         muteThisClient = props.getProperty("mute", "false").equalsIgnoreCase("true");
-        logAdditionalAudioInfo = props.getProperty("logAdditionalAudioInfo", "false").equalsIgnoreCase("true");
 
         if (LOG.isDebugEnabled()) {
             java.util.logging.Logger.getLogger(OkHttpClient.class.getName()).setLevel(Level.FINE);
