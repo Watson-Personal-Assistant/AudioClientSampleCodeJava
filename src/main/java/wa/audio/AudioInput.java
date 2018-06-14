@@ -183,7 +183,7 @@ public class AudioInput {
             e.printStackTrace();
         } finally {
             client.getIndicator().off();
-            client.logFinalServerWriteStatus();            
+            client.logFinalServerWriteStatus();
             if (this.client.isServerConnectionReady() && writingToServer) {
                 this.client.writeToServer(ClientHelpers.getClientEndAudioAction().toString());
             }
@@ -192,10 +192,6 @@ public class AudioInput {
                 audioInputDevice.release();
                 audioInputDevice = null;
             }
-            
-            client.wakeupTriggerIsAllowed();
-
-            // TODO is this still needed?
             // Enable a client 'trigger wake up safety' in case we never get a response
             client.scheduleWakeupTriggerEnable();
         }

@@ -18,10 +18,7 @@ package wa.client;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.net.HttpURLConnection;
 import java.net.InetAddress;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -38,8 +35,11 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import okhttp3.Credentials;
+import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
+import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.WebSocket;
 import okhttp3.WebSocketListener;
@@ -81,21 +81,15 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
 
     private WebSocket webSocket;
 
-    private String IAMAccessToken = null;
-    
-    private String skillset = null;
-
-    private String language = null;
-    
-    private String engine = null;
-
     private String watsonHost = null;
 
     private String watsonPort = null;
 
     private Boolean watsonSsl = true;
 
-    private String userID = null;
+    private String watsonHeader = null;
+
+    private String watsonKey = null;
 
     private Debouncer<String> debouncer;
 
@@ -303,9 +297,6 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
                         LOG.error("Server connection is not ready and microphone is open - Problem closing the microphone.", e);
                     }
                     if (ServerConnectionStatus.NOTCONNECTED == getServerConnectionStatus()) {
-                    		// IAMAccessToken should be retrieved from the IAM service by providing it with your cloud API Key (based on your IBM ID)
-                        IAMAccessToken = getIAMAccessToken(IAMAPIKey);
-
                         // We need to connect...
                         connect();
                         Thread.sleep(1500);
@@ -790,10 +781,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
                 LOG.debug(String.format(" Server sent a different response without a CARD - treat as STOP and play new response. Current-ID: %s  Previous-ID: %s", currentAudioId, previousAudioId));
                 // Clear current audioId
                 previousAudioId = null;
-                
-                // commented the next line as it was causing a bug - after 2-3 utterances the voice playbacks stops
-                //this.audioOutput.stop();
-                                
+                this.audioOutput.stop();
                 getSocketCommandProcessor().sendPlaybackStop();
                 // Don't enable the wake up trigger.  End of playback will do it.
                 allowWakeUpTriggerAfterProcessing = false;
@@ -929,7 +917,6 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
 
     private int writeToServerCount;
     private int writeToServerBytes;
-	private String IAMAPIKey;
 
     public synchronized void clearServerWriteLogging() {
         writeToServerCount = 0;
@@ -1041,21 +1028,12 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
     }
 
     private void initialize(Properties props) {
-        // Required parameter
-        IAMAPIKey = props.getProperty("IAMAPIKey");
-        skillset = props.getProperty("skillset");
-        
-        // Optional parameters
-        language = props.getProperty("language");
-        engine = props.getProperty("engine");
-        
-
         watsonHost = props.getProperty("host");
         watsonPort = props.getProperty("port");
         String noSsl = props.getProperty("nossl", "false");
         watsonSsl = noSsl.equalsIgnoreCase("false");
-        // the userId
-        userID = props.getProperty("userID");
+        watsonHeader = props.getProperty("header");
+        watsonKey = props.getProperty("key");
         watsonVoice = props.getProperty("voice");
         commandSocketPort = Integer.parseInt(props.getProperty("cmdSocketPort", "10010"));
         audioSocketPort = Integer.parseInt(props.getProperty("audioSocketPort", "10011"));
@@ -1069,15 +1047,13 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
             java.util.logging.Logger.getLogger(OkHttpClient.class.getName()).setLevel(Level.FINE);
         }
 
-        LOG.info("USER ID (Optional): " + userID);
-        LOG.info("Language (Optional): " + language);
-        LOG.info("Engine (Optional): " + engine);
         LOG.info("WATSON HOST: " + watsonHost);
         LOG.info("WATSON PORT: " + watsonPort);
-        LOG.info("SKILLSET: " + skillset);        
-        LOG.info("WATSON IAM API Key: *****");        
+        LOG.info("WATSON HEADER: " + watsonHeader);
+        LOG.info("WATSON KEY: *****");
+        LOG.debug(" (" + watsonKey + ")");
 
-        if (watsonHost == null || skillset == null || IAMAPIKey == null) {
+        if (watsonHost == null || watsonHeader == null || watsonKey == null) {
             LocalAudio.play(LocalAudio.ERROR_CONFIG);
             throw new Error("Missing authentication information.  Aborting.");
         }
@@ -1129,43 +1105,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
 
     }
 
-    private String getIAMAccessToken(String apikey) {    	
-    		String IAMAccessToken = "";
-    		
-	    	String urlParameters  = "apikey="+apikey+"&grant_type=urn%3Aibm%3Aparams%3Aoauth%3Agrant-type%3Aapikey";
-	    	byte[] postData       = urlParameters.getBytes( StandardCharsets.UTF_8 );
-	    	int    postDataLength = postData.length;
-	    	String request        = "https://iam.bluemix.net/oidc/token";
-	    	URL url;
-	    	try {
-	    		url = new URL( request );
-	
-	    		HttpURLConnection conn= (HttpURLConnection) url.openConnection();           
-	    		conn.setDoOutput( true );
-	    		conn.setInstanceFollowRedirects( false );
-	    		conn.setRequestMethod( "POST" );
-	    		conn.setRequestProperty( "Content-Type", "application/x-www-form-urlencoded"); 
-	    		conn.setRequestProperty( "cache-control", "no-cache");
-	    		conn.setRequestProperty( "accept","application/json");
-	    		//	conn.setRequestProperty( "charset", "utf-8");
-	    		//	conn.setRequestProperty( "Content-Length", Integer.toString( postDataLength ));
-	    		conn.setUseCaches( false );
-	    		conn.getOutputStream().write(postData);
-	
-	    		String response = org.apache.commons.io.IOUtils.toString(conn.getInputStream(), StandardCharsets.UTF_8);
-	    		JSONObject jsonObj = new JSONObject(response);
-	    		IAMAccessToken = jsonObj.getString("access_token");
-	    		
-	    	} catch (IOException e) {
-	    		LOG.error(String.format("Error - Could not convert IAM API Key to IAM Access token : %s",
-                        e.getMessage()),e);
-	    	}
-    		
-	    return IAMAccessToken;
-    }
-
-
-	/**
+    /**
      * Connect the client to the Watson (Websocket) Server.
      * If the client is currently connected, it will first disconnect and then attempt a new connection.
      * 
@@ -1192,13 +1132,35 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
                 .build();
 
         try {
+            String tokenUrl = (watsonSsl ? "https" : "http")
+                    + "://" + watsonHost
+                    + (watsonPort == null ? "" : ":" + watsonPort) + "/v1/api/tokens";
+            Request tokenRequest = new Request.Builder()
+                    .url(tokenUrl)
+                    .header("Authorization", Credentials.basic(watsonHeader, watsonKey))
+                    .post(RequestBody.create(MediaType.parse("text/plain"), ""))
+                    .build();
+
+            Response response = httpClient.newCall(tokenRequest).execute();
+            if (!response.isSuccessful()) {
+                int code = response.code();
+                response.body().close();
+                if (code == 401 || code == 403) {
+                    throw new AuthException("Authentication failure: " + response.message());
+                }
+            }
+
+            String tokenJSON = response.body().string();
+            JSONObject tokenObject = new JSONObject(tokenJSON);
+            String token = tokenObject.getString("token");
+            LOG.info("Token received: " + token);
+
             // Build request
             String webSocketUrl = (watsonSsl ? "wss" : "ws")
                     + "://" + watsonHost
-                    + (watsonPort == null ? "" : ":" + watsonPort) + "?skillset=" + skillset+"&userID=" + userID + "&language=" + language + "&engine=" + engine;
+                    + (watsonPort == null ? "" : ":" + watsonPort) + "?token=" + token;
             Request request = new Request.Builder()
                     .url(webSocketUrl)
-                    .addHeader("Authorization", "Bearer " + IAMAccessToken)
                     .build();
 
             // initialize the watch dog

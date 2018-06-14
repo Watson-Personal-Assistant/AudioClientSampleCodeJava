@@ -1,21 +1,9 @@
 ### Server connection parameters
 host=<<endpoint-address>>
-userID=<<user ID or client-id>>
-
+header=<<client-id>>
+key=<<client-password>>
 # Used to make a non-SSL connection if testing on a server without SSL configured (locally). Default=false
 #nossl=true
-
-# IAM API Key is Used to authenticate the client device - created per IBM ID (or Service ID) using IBM Cloud
-IAMAPIKey=
-
-# Choosing which skill set to use (Required parameter)
-skillset=
-
-# Client language specific preferences can be passed (Optional parameter with a default value: en-US)
-#language=en-US
-
-# Choosing which STT and TTS engine to convert audio to text and text to audio - possible values are : watson, google , (Optional parameter with a default value : watson)
-#engine=
 
 ### Controls playback method. Playback using an audio URL in the response [true], playback by streaming audio from the server [false]
 urltts=false
