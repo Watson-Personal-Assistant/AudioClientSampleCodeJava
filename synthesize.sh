@@ -33,7 +33,9 @@ synthesize()
 synthesize "The configure properties file was not found" error-no-config-file
 synthesize "There was an error with the configuration of the client. Check the configure.properties file for valid values." error-config
 synthesize "There was an error connecting to the server" error-network
+synthesize "There was an error creating or configuring the client" error-client-create
 synthesize "There was an error authenticating with the server" error-auth
+
 synthesize "Your IP address is" announce-ip
 synthesize "The client has stopped" aborting
 synthesize dot dot

@@ -23,6 +23,7 @@ import org.apache.logging.log4j.Logger;
 
 import wa.audio.LocalAudio;
 import wa.client.Client;
+import wa.exceptions.AuthenticationError;
 
 
 /**
@@ -34,8 +35,9 @@ import wa.client.Client;
  *  This does not exit unless:
  *  <bl>
  *   <li> It cannot open/read the configure.properties file (Exit=1)
- *   <li> It cannot create and initialize the Client (Exit=1)
- *   <li> There is a 'catastrophic' error from the client (Exit=3)
+ *   <li> It cannot create and initialize the Client (Exit=2)
+ *   <li> The client could not authenticate with the server (Exit=3)
+ *   <li> There is a 'catastrophic' error from the client (Exit=4)
  *   <li> The process is externally terminated
  *   </bl>
  *   
@@ -60,14 +62,7 @@ public class Driver {
         Properties properties = readProps();
         if (null == properties) {
             LOG.error("The configure.properties was not found, could not be read, or is not in valid properties file format. The configure.properties file should be in the 'config' folder.");
-            try {
-                LocalAudio.playFlacFile(LocalAudio.ERROR_NO_CONFIG_FILE);
-            }
-            catch (Throwable t) {
-                // At this point - just exit
-                // (log it, just in case it helps improve the responses)
-                LOG.error("-- could not PLAY response audio due to: " + t,  t);
-            }
+            playLocalFlacAudio(LocalAudio.ERROR_NO_CONFIG_FILE);
             System.exit(1);
         }
 
@@ -78,6 +73,7 @@ public class Driver {
         catch (Throwable t) {
             // Any error from creating the client causes this to exit(2)
             LOG.error("Problem trying to create and initialize the client: " + t, t);
+            playLocalFlacAudio(LocalAudio.ERROR_CLIENT_CREATE);
             System.exit(2);
         }
 
@@ -95,13 +91,38 @@ public class Driver {
                 }
             }
             LOG.info("Client is done!");
+            // Check for an error.
+            RuntimeException error = client.getError();
+            if (null != error && error instanceof AuthenticationError) {
+                playLocalFlacAudio(LocalAudio.ERROR_AUTH);
+                System.exit(3);
+            }
         } catch (RuntimeException re) {
             LOG.error("Exiting due to thrown RuntimeException", re);
+            System.exit(4);
         } catch (Error err) {
             LOG.error("Exiting due to thrown Error",  err);
+            System.exit(4);
         }
     }
 
+    /**
+     * Play a local audio file safely (catch any exception that occurs 
+     * while playing and log it).
+     * 
+     * @param flacFileName - Name of the FLAC audio file to play
+     */
+    private static void playLocalFlacAudio(String flacFileName) {
+        try {
+            LocalAudio.playFlacFile(flacFileName);
+        }
+        catch (Throwable t) {
+            // At this point - just exit
+            // (log it, just in case it helps improve the responses)
+            LOG.error("-- could not PLAY response audio due to: " + t,  t);
+        }
+    }
+    
     /**
      * Reads the configure.properties file
      * 
