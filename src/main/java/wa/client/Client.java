@@ -60,7 +60,7 @@ import wa.util.Debouncer;
 import wa.util.Utils;
 
 public class Client extends WebSocketListener implements ThreadManager, Runnable {
-    // Initialize our loggerLOG_SERVER_COMM_RECEIVE
+    // Initialize our loggers
     private static final Logger LOG = LogManager.getLogger(Client.class);
     private static final Logger LOG_SERVER_COMM_RECEIVE = LogManager.getLogger("GLOBAL.Server.Communication.Receive");
     private static final Logger LOG_SERVER_COMM_SEND = LogManager.getLogger("GLOBAL.Server.Communication.Send");
@@ -305,7 +305,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
                     }
                     if (ServerConnectionStatus.NOTCONNECTED == getServerConnectionStatus()) {
                     		// IAMAccessToken should be retrieved from the IAM service by providing it with your cloud API Key (based on your IBM ID)
-                        IAMAccessToken = getIAMAccessToken(keyIAMAPI);
+                        IAMAccessToken = getIAMAccessToken(iamApiKey);
 
                         // We need to connect...
                         connect();
@@ -930,7 +930,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
 
     private int writeToServerCount;
     private int writeToServerBytes;
-	private String keyIAMAPI;
+	private String iamApiKey;
 
     public synchronized void clearServerWriteLogging() {
         writeToServerCount = 0;
@@ -1046,7 +1046,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
     private void initialize(Properties props) {
         // Required parameters
         watsonHost = props.getProperty("host");
-        keyIAMAPI = props.getProperty("IAMAPIKey");
+        iamApiKey = props.getProperty("IAMAPIKey");
         skillset = props.getProperty("skillset");
         
         // Optional parameters
@@ -1075,12 +1075,12 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
         LOG.info("WATSON HOST: " + watsonHost);
         LOG.info("WATSON PORT (Optional): " + watsonPort);
         LOG.info("SKILLSET: " + skillset);        
-        LOG.info("WATSON IAM API Key: " + (null == keyIAMAPI ? "null" : "*****"));        
+        LOG.info("WATSON IAM API Key: " + (null == iamApiKey ? "null" : "*****"));        
         LOG.info("USER ID (Optional): " + userID);
         LOG.info("Language (Optional): " + language);
         LOG.info("Engine (Optional): " + engine);
 
-        if (StringUtils.isBlank(watsonHost) || StringUtils.isBlank(skillset) || StringUtils.isBlank(keyIAMAPI)) {
+        if (StringUtils.isBlank(watsonHost) || StringUtils.isBlank(skillset) || StringUtils.isBlank(iamApiKey)) {
             LocalAudio.playFlacFile(LocalAudio.ERROR_INVALID_CONFIG);
             throw new Error("Missing required host, authentication or configuration information.  Check the configure.properties file.  Aborting...");
         }
