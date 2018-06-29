@@ -82,12 +82,12 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
 
     private WebSocket webSocket;
 
-    private String IAMAccessToken = null;
-    
+    private String iamAccessToken = null;
+
     private String skillset = null;
 
     private String language = null;
-    
+
     private String engine = null;
 
     private String watsonHost = null;
@@ -126,12 +126,9 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
     private StatusPing statusPingSender;
 
     public enum ServerConnectionStatus {
-        NOTCONNECTED,
-        CONNECTING,
-        CONNECTED,
-        READY,
-        CLOSING
+        NOTCONNECTED, CONNECTING, CONNECTED, READY, CLOSING
     };
+
     private ServerConnectionStatus serverConnectionStatus = ServerConnectionStatus.NOTCONNECTED;
     private long serverConnectionStatusLastSentTS = 0;
     final private Object serverConnectionStatusLock = new Object();
@@ -141,7 +138,6 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
     private Boolean wakeupTriggerAllowed = false;
     private long wakeupTriggerAllowedStatusLastSentTS = 0;
     final private Object wakeupTriggerAllowedLock = new Object();
-
 
     // audio url playing
     private String voiceUrl = null;
@@ -233,6 +229,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
             Client.this.endOfAudioOutputTask = null;
         }
     }
+
     private EndOfAudioOutputTask endOfAudioOutputTask = null;
 
     // Scheduler for executing a fail-safe for the Client Wake Trigger enable
@@ -253,12 +250,14 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
         }
     }
 
-
-    /** 
-     * Create a Client object with the property values in Properties.
-     * The only reason this method will fail is if there is a required property value that is missing or cannot be used.
+    /**
+     * Create a Client object with the property values in Properties. The only
+     * reason this method will fail is if there is a required property value that is
+     * missing or cannot be used.
      * 
-     * @param props - a Properties object that provides the required and optional properties for the Client to initialize.
+     * @param props
+     *            - a Properties object that provides the required and optional
+     *            properties for the Client to initialize.
      */
     public Client(Properties props) {
         super();
@@ -266,14 +265,13 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
         initialize(props);
     }
 
-
     /**
      * Run the client.
      * 
-     * This will try to connect.
-     * If it cannot connect, it will retry (as much as needed).
-     * Once connected, it will respond to input audio, send it to the server, and respond with audio.
-     * If it disconnects, it will go back to trying to reconnect.
+     * This will try to connect. If it cannot connect, it will retry (as much as
+     * needed). Once connected, it will respond to input audio, send it to the
+     * server, and respond with audio. If it disconnects, it will go back to trying
+     * to reconnect.
      * 
      */
     @Override
@@ -286,7 +284,8 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
         do {
             try {
                 // connect, and stay connected... - try to reconnect if needed
-                // If the server connection isn't in the READY state we need to be doing one of the following:
+                // If the server connection isn't in the READY state we need to be doing one of
+                // the following:
                 // (if)
                 // 1) NOT_CONNECTED: Try to connect
                 // 2) CONNECTING: Wait for timeout for connection to occur
@@ -304,20 +303,21 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
                         LOG.error("Server connection is not ready and microphone is open - Problem closing the microphone.", e);
                     }
                     if (ServerConnectionStatus.NOTCONNECTED == getServerConnectionStatus()) {
-                    		// IAMAccessToken should be retrieved from the IAM service by providing it with your cloud API Key (based on your IBM ID)
-                        IAMAccessToken = getIAMAccessToken(iamApiKey);
+                        // IAMAccessToken should be retrieved from the IAM service by providing it with
+                        // your cloud API Key (based on your IBM ID)
+                        this.iamAccessToken = getIAMAccessToken(iamApiKey);
 
                         // We need to connect...
                         connect();
                         Thread.sleep(1500);
                         continue;
                     }
-                    // Keep track of how long we've been trying to connect.  If it takes too long - start over...
+                    // Keep track of how long we've been trying to connect. If it takes too long -
+                    // start over...
                     if (ServerConnectionStatus.CONNECTING == getServerConnectionStatus()) {
                         if (reconnectDelay < MAX_RETRY_DELAY) {
                             reconnectDelay++;
-                        }
-                        else {
+                        } else {
                             setServerConnectionStatus(ServerConnectionStatus.NOTCONNECTED);
                         }
                         LOG.info(String.format("Could not connect.  Re-trying attempt %d in %d seconds...", (readyStateConnectAttemps + 2), reconnectDelay));
@@ -335,13 +335,13 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
                 reconnectDelay = MIN_RETRY_DELAY;
                 Thread.sleep(1500);
             } catch (InterruptedException e) {
-                // Cannot THROW out of thread Run.  Log it!
+                // Cannot THROW out of thread Run. Log it!
                 LOG.error(String.format("Client main thread '%s' was Interrupted!", threadName), e);
             } catch (RuntimeException re) {
-                // Cannot THROW out of thread Run.  Log it!
+                // Cannot THROW out of thread Run. Log it!
                 LOG.error(String.format("Client main thread '%s' received RuntimeException!", threadName), re);
             } catch (Error err) {
-                // Cannot THROW out of thread Run.  Log it!
+                // Cannot THROW out of thread Run. Log it!
                 LOG.error(String.format("Client main thread '%s' received Error!", threadName), err);
             }
         } while (WE_SHOULD_KEEP_RUNNING);
@@ -349,24 +349,29 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
 
     /**
      * Gets the current connection status between the client and the server.
+     * 
      * @return
      */
     public ServerConnectionStatus getServerConnectionStatus() {
-        synchronized(serverConnectionStatusLock) {
+        synchronized (serverConnectionStatusLock) {
             return this.serverConnectionStatus;
         }
     }
 
     /**
-     * Sets the current connection status.  If the status is different from the previous status, send a status update.  If the status is the same as the previous status, 
-     * check the last time a status update was sent, and send status if enough time has passed (avoids sending a barrage of status messages.
+     * Sets the current connection status. If the status is different from the
+     * previous status, send a status update. If the status is the same as the
+     * previous status, check the last time a status update was sent, and send
+     * status if enough time has passed (avoids sending a barrage of status
+     * messages.
      * 
      * TODO: Also update the 'local' status indicator.
      * 
-     * @param connectionStatus - the current connection status
+     * @param connectionStatus
+     *            - the current connection status
      */
     private void setServerConnectionStatus(ServerConnectionStatus connectionStatus) {
-        synchronized(serverConnectionStatusLock) {
+        synchronized (serverConnectionStatusLock) {
             ServerConnectionStatus currentStatus = this.serverConnectionStatus;
             if (connectionStatus != currentStatus || (System.currentTimeMillis() > (this.serverConnectionStatusLastSentTS + 3000))) {
                 this.serverConnectionStatus = connectionStatus;
@@ -416,10 +421,11 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
     }
 
     /**
-     * Sends the connection status to the Socket Command Processor to be sent to a controller.
+     * Sends the connection status to the Socket Command Processor to be sent to a
+     * controller.
      */
     public void sendConnectionStatus() {
-        synchronized(serverConnectionStatusLock) {
+        synchronized (serverConnectionStatusLock) {
             SocketCommandProcessor scp = getSocketCommandProcessor();
             if (null != scp) {
                 switch (this.serverConnectionStatus) {
@@ -446,13 +452,14 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
     }
 
     /**
-     * Sends the wake trigger allowed status to the Socket Command Processor to be sent to a controller.
+     * Sends the wake trigger allowed status to the Socket Command Processor to be
+     * sent to a controller.
      */
     public void sendWakeupTriggerAllowedStatus() {
         SocketCommandProcessor scp = getSocketCommandProcessor();
         if (null != scp) {
-            synchronized(wakeupTriggerAllowedLock) {
-                scp.sendWakeupTriggerIsAllowed(this.isWakeupTriggerAllowed()); 
+            synchronized (wakeupTriggerAllowedLock) {
+                scp.sendWakeupTriggerIsAllowed(this.isWakeupTriggerAllowed());
                 this.wakeupTriggerAllowedStatusLastSentTS = System.currentTimeMillis();
             }
         }
@@ -489,7 +496,6 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
         }
     }
 
-
     public boolean setOutputToAudioSocket() {
         audioOutput.setOutputToAudioSocket(true);
         return true;
@@ -505,7 +511,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
     }
 
     public boolean isServerConnectionReady() {
-        synchronized(serverConnectionStatusLock) {
+        synchronized (serverConnectionStatusLock) {
             return (ServerConnectionStatus.READY == serverConnectionStatus);
         }
     }
@@ -514,7 +520,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
      * Enables a wake up trigger to start the system listening.
      */
     public void wakeupTriggerIsAllowed() {
-        synchronized(wakeupTriggerAllowedLock) {
+        synchronized (wakeupTriggerAllowedLock) {
             // Attempt to cancel a pending enabler
             cancelWakeupTriggerEnabler();
 
@@ -530,11 +536,10 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
     }
 
     /**
-     * Disables the wake up trigger.
-     * A call to wakeupTriggerIsAllawed re-enables it.
+     * Disables the wake up trigger. A call to wakeupTriggerIsAllawed re-enables it.
      */
     private void wakeupTriggerNotAllowed() {
-        synchronized(wakeupTriggerAllowedLock) {
+        synchronized (wakeupTriggerAllowedLock) {
             LOG.debug("Wakeup trigger IS NOW NOT allowed.");
             cancelWakeupTriggerEnabler();
             wakeupTriggerAllowed = false;
@@ -543,8 +548,8 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
     }
 
     public boolean isWakeupTriggerAllowed() {
-        synchronized(wakeupTriggerAllowedLock) {
-            synchronized(serverConnectionStatusLock) {
+        synchronized (wakeupTriggerAllowedLock) {
+            synchronized (serverConnectionStatusLock) {
                 return (this.wakeupTriggerAllowed && (ServerConnectionStatus.READY == this.serverConnectionStatus));
             }
         }
@@ -555,7 +560,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
     }
 
     public void scheduleWakeupTriggerEnable() {
-        synchronized(serverConnectionStatusLock) {
+        synchronized (serverConnectionStatusLock) {
             // Cancel an existing one
             cancelWakeupTriggerEnabler();
             WakeTriggerEnableFailSafe wakeTriggerEnableFailSafe = new WakeTriggerEnableFailSafe(this);
@@ -564,7 +569,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
     }
 
     private void cancelWakeupTriggerEnabler() {
-        synchronized(serverConnectionStatusLock) {
+        synchronized (serverConnectionStatusLock) {
             if (null != wakeTriggerEnablerFuture) {
                 wakeTriggerEnablerFuture.cancel(false);
                 wakeTriggerEnablerFuture = null;
@@ -639,7 +644,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
     }
 
     public SocketCommandProcessor getSocketCommandProcessor() {
-        synchronized(socketsLock) {
+        synchronized (socketsLock) {
             return this.socketCommandProcessor;
         }
     }
@@ -655,7 +660,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
         if (action.isEmpty()) {
             LOG.error("No action key in response.");
             return;
-        } else{
+        } else {
             if (!"audio_data".equals(action)) {
                 LOG.debug(String.format("\n******** data action type:\"%s\"", action));
             }
@@ -669,8 +674,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
             JSONObject errData = response.optJSONObject("error");
             if (null != errData) {
                 errMsg = errData.optString("message");
-            }
-            else { // Try to read it as a string rather than an object
+            } else { // Try to read it as a string rather than an object
                 errMsg = response.optString("error");
             }
             if (null == errMsg || errMsg.isEmpty()) {
@@ -681,8 +685,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
 
         case "stt_transcript":
             transcriptReceivedTime = System.currentTimeMillis();
-            LOG.info(String.format("STT transcript -> '%s' confidence -> %.2f%% transaction id -> '%s'",
-                    response.optString("transcript"), response.optDouble("confidence") * 100,
+            LOG.info(String.format("STT transcript -> '%s' confidence -> %.2f%% transaction id -> '%s'", response.optString("transcript"), response.optDouble("confidence") * 100,
                     response.optString("transactionId")));
             if (this.audioInput.micIsOpen()) {
                 this.audioInput.micClose();
@@ -704,8 +707,8 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
             if (null != endOfAudioOutputTask) {
                 endOfAudioOutputTask.shouldPrompt(shouldPrompt, promptSttOptionsInResponse);
             }
-            if(!muteThisClient){
-                if(enableResponseUrlProcessing && voiceUrl != null && !voiceUrl.isEmpty()) {
+            if (!muteThisClient) {
+                if (enableResponseUrlProcessing && voiceUrl != null && !voiceUrl.isEmpty()) {
                     LOG.debug(String.format("client will play audio response from URL: %s", voiceUrl));
                     urlMode = true;
                     AudioPlayer player = new AudioPlayer(voiceUrl);
@@ -731,7 +734,8 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
                 Utils.printJSON(data);
 
             // Process CARD if there is one.
-            //  CARD (if present) can have client control information ('stop', 'volume-up', 'volume-down')
+            // CARD (if present) can have client control information ('stop', 'volume-up',
+            // 'volume-down')
             boolean allowWakeUpTriggerAfterProcessing = true;
             JSONObject card = data.optJSONObject("card");
             if (null != card) {
@@ -744,7 +748,8 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
                         String commandFeature = content.optString("feature", "UNKNOWN").toUpperCase();
                         LOG.debug(String.format("CARD response - FEATURE: '%s'  ACTION: '%s'", commandFeature, commandAction));
                         switch (commandFeature) {
-                        // TODO: Create class to handle this (could be different on each case - but not adding comment to each case)
+                        // TODO: Create class to handle this (could be different on each case - but not
+                        // adding comment to each case)
                         case "PLAYBACK":
                             if ("RESUME".equals(commandAction)) {
                                 LOG.debug(" Server requested to resume playback");
@@ -755,7 +760,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
                                 currentAudioId = null;
                                 this.audioOutput.stop();
                                 getSocketCommandProcessor().sendPlaybackStop();
-                                // Don't enable the wake up trigger.  End of playback will do it.
+                                // Don't enable the wake up trigger. End of playback will do it.
                                 allowWakeUpTriggerAfterProcessing = false;
                                 // TODO - Create a stop_playback command on the server and send it from here.
                             }
@@ -764,16 +769,13 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
                             if ("DECREASE".equals(commandAction)) {
                                 LOG.debug(" Server requested to decrease volume");
                                 getSocketCommandProcessor().sendVolumeDecrease();
-                            }
-                            else if ("INCREASE".equals(commandAction)) {
+                            } else if ("INCREASE".equals(commandAction)) {
                                 LOG.debug(" Server requested to increase volume");
                                 getSocketCommandProcessor().sendVolumeIncrease();
-                            }
-                            else if ("MUTE".equals(commandAction)) {
+                            } else if ("MUTE".equals(commandAction)) {
                                 LOG.debug(" Server requested to mute volume");
                                 getSocketCommandProcessor().sendVolumeMute();
-                            }
-                            else if ("UNMUTE".equals(commandAction)) {
+                            } else if ("UNMUTE".equals(commandAction)) {
                                 LOG.debug(" Server requested to unmute volume");
                                 getSocketCommandProcessor().sendVolumeUnmute();
                             }
@@ -785,26 +787,28 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
                         }
                     }
                 }
-            }
-            else if (null != currentAudioId && null != previousAudioId && !currentAudioId.equals(previousAudioId)) {
-                // Treat any other response that doesn't have a CARD as a STOP so it can start playing the new response.
-                LOG.debug(String.format(" Server sent a different response without a CARD - treat as STOP and play new response. Current-ID: %s  Previous-ID: %s", currentAudioId, previousAudioId));
+            } else if (null != currentAudioId && null != previousAudioId && !currentAudioId.equals(previousAudioId)) {
+                // Treat any other response that doesn't have a CARD as a STOP so it can start
+                // playing the new response.
+                LOG.debug(String.format(" Server sent a different response without a CARD - treat as STOP and play new response. Current-ID: %s  Previous-ID: %s", currentAudioId,
+                        previousAudioId));
                 // Clear current audioId
                 previousAudioId = null;
-                
-                // commented the next line as it was causing a bug - after 2-3 utterances the voice playbacks stops
-                //this.audioOutput.stop();
-                                
+
+                // commented the next line as it was causing a bug - after 2-3 utterances the
+                // voice playbacks stops
+                // this.audioOutput.stop();
+
                 getSocketCommandProcessor().sendPlaybackStop();
-                // Don't enable the wake up trigger.  End of playback will do it.
+                // Don't enable the wake up trigger. End of playback will do it.
                 allowWakeUpTriggerAfterProcessing = false;
                 // TODO - Create a stop_playback command on the server and send it from here.
             }
 
-            //data.speech.text for 0.5 server
-            //data.say for 0.2 server
+            // data.speech.text for 0.5 server
+            // data.say for 0.2 server
             JSONObject speech = data.optJSONObject("speech");
-            String responseText = (speech!=null) ? speech.optString("text") : data.optString("say");
+            String responseText = (speech != null) ? speech.optString("text") : data.optString("say");
             LOG.debug(String.format("Response \"%s\"", responseText));
 
             if (allowWakeUpTriggerAfterProcessing) {
@@ -837,7 +841,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
             break;
 
         case "audio_data":
-            if(urlMode) {
+            if (urlMode) {
                 LOG.debug(" will play from url...");
                 break;
             }
@@ -902,14 +906,14 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
                 endOfAudioOutputTask.complexPromptSttOptions(promptSttOptionsInResponse);
             }
 
-
             // Output performance data
             if (logAdditionalAudioInfo) {
                 long sttResponseTime = transcriptReceivedTime - openMicTime;
                 long responseTime = responseReceivedTime - transcriptReceivedTime;
                 long audioStartTime = audioStartReceivedTime - transcriptReceivedTime;
                 long audioDataTime = audioEndReceivedTime - audioStartReceivedTime;
-                LOG.info(String.format("PERF: \tSTT-Returned=%d \tResponse=%d \tAudio-Start=%d \tAudio-Data-Time=%d \tAudio-Packets=%d \tAudio-Data-Size=%d", sttResponseTime, responseTime, audioStartTime, audioDataTime, audioPacketCount, audioDataSize));
+                LOG.info(String.format("PERF: \tSTT-Returned=%d \tResponse=%d \tAudio-Start=%d \tAudio-Data-Time=%d \tAudio-Packets=%d \tAudio-Data-Size=%d", sttResponseTime,
+                        responseTime, audioStartTime, audioDataTime, audioPacketCount, audioDataSize));
             }
 
             audioOutput.finish();
@@ -930,7 +934,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
 
     private int writeToServerCount;
     private int writeToServerBytes;
-	private String iamApiKey;
+    private String iamApiKey;
 
     public synchronized void clearServerWriteLogging() {
         writeToServerCount = 0;
@@ -965,9 +969,9 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
     }
 
     /**
-     *  Called by the GPIO, keyboard listen, and socket listen threads.
-     *  This will trigger the audio listening if it is currently allowed.
-     *  
+     * Called by the GPIO, keyboard listen, and socket listen threads. This will
+     * trigger the audio listening if it is currently allowed.
+     * 
      * @param inputSource
      * @return true if trigger is allowed, false is not currently allowed
      * @throws InterruptedException
@@ -976,7 +980,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
         // This message is a bit 'expensive' so checking for being enabled
         if (LOG.isDebugEnabled()) {
             CallStack from = new CallStack();
-            LOG.debug("Wakeup trigger received...", from); 
+            LOG.debug("Wakeup trigger received...", from);
         }
         if (!isWakeupTriggerAllowed()) {
             LOG.debug("Wakeup trigger not allowed - trigger ignored!");
@@ -984,7 +988,8 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
         }
 
         // Cancel output
-        audioOutput.cancel(); // TODO: really need to pause in case it is raise/lower volume - but for now we'll do this.
+        audioOutput.cancel(); // TODO: really need to pause in case it is raise/lower volume - but for now
+                              // we'll do this.
 
         // Enable output
         audioOutput.enable();
@@ -1048,13 +1053,13 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
         watsonHost = props.getProperty("host");
         iamApiKey = props.getProperty("IAMAPIKey");
         skillset = props.getProperty("skillset");
-        
+
         // Optional parameters
         watsonPort = props.getProperty("port");
-        
+
         language = props.getProperty("language");
         engine = props.getProperty("engine");
-        
+
         String noSsl = props.getProperty("nossl", "false");
         watsonSsl = noSsl.equalsIgnoreCase("false");
         // the userId
@@ -1074,8 +1079,8 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
 
         LOG.info("WATSON HOST: " + watsonHost);
         LOG.info("WATSON PORT (Optional): " + watsonPort);
-        LOG.info("SKILLSET: " + skillset);        
-        LOG.info("WATSON IAM API Key: " + (null == iamApiKey ? "null" : "*****"));        
+        LOG.info("SKILLSET: " + skillset);
+        LOG.info("WATSON IAM API Key: " + (null == iamApiKey ? "null" : "*****"));
         LOG.info("USER ID (Optional): " + userID);
         LOG.info("Language (Optional): " + language);
         LOG.info("Engine (Optional): " + engine);
@@ -1132,47 +1137,47 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
 
     }
 
-    private String getIAMAccessToken(String apikey) {    	
-    		String IAMAccessToken = "";
-    		
-	    	String urlParameters  = "apikey="+apikey+"&grant_type=urn%3Aibm%3Aparams%3Aoauth%3Agrant-type%3Aapikey";
-	    	byte[] postData       = urlParameters.getBytes( StandardCharsets.UTF_8 );
-	    	int    postDataLength = postData.length;
-	    	String request        = "https://iam.bluemix.net/oidc/token";
-	    	URL url;
-	    	try {
-	    		url = new URL( request );
-	
-	    		HttpURLConnection conn= (HttpURLConnection) url.openConnection();           
-	    		conn.setDoOutput( true );
-	    		conn.setInstanceFollowRedirects( false );
-	    		conn.setRequestMethod( "POST" );
-	    		conn.setRequestProperty( "Content-Type", "application/x-www-form-urlencoded"); 
-	    		conn.setRequestProperty( "cache-control", "no-cache");
-	    		conn.setRequestProperty( "accept","application/json");
-	    		//	conn.setRequestProperty( "charset", "utf-8");
-	    		//	conn.setRequestProperty( "Content-Length", Integer.toString( postDataLength ));
-	    		conn.setUseCaches( false );
-	    		conn.getOutputStream().write(postData);
-	
-	    		String response = org.apache.commons.io.IOUtils.toString(conn.getInputStream(), StandardCharsets.UTF_8);
-	    		JSONObject jsonObj = new JSONObject(response);
-	    		IAMAccessToken = jsonObj.getString("access_token");
-	    		
-	    	} catch (IOException e) {
-	    		LOG.error(String.format("Error - Could not convert IAM API Key to IAM Access token : %s",
-                        e.getMessage()),e);
-	    	}
-    		
-	    return IAMAccessToken;
+    private String getIAMAccessToken(String apikey) {
+        String iamAccessToken = "";
+
+        String urlParameters = "apikey=" + apikey + "&grant_type=urn%3Aibm%3Aparams%3Aoauth%3Agrant-type%3Aapikey";
+        byte[] postData = urlParameters.getBytes(StandardCharsets.UTF_8);
+        int postDataLength = postData.length;
+        String request = "https://iam.bluemix.net/oidc/token";
+        URL url;
+        try {
+            url = new URL(request);
+
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setDoOutput(true);
+            conn.setInstanceFollowRedirects(false);
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+            conn.setRequestProperty("cache-control", "no-cache");
+            conn.setRequestProperty("accept", "application/json");
+            // conn.setRequestProperty( "charset", "utf-8");
+            // conn.setRequestProperty( "Content-Length", Integer.toString( postDataLength
+            // ));
+            conn.setUseCaches(false);
+            conn.getOutputStream().write(postData);
+
+            String response = org.apache.commons.io.IOUtils.toString(conn.getInputStream(), StandardCharsets.UTF_8);
+            JSONObject jsonObj = new JSONObject(response);
+            iamAccessToken = jsonObj.getString("access_token");
+
+        } catch (IOException e) {
+            LOG.error(String.format("Error - Could not convert IAM API Key to IAM Access token : %s", e.getMessage()), e);
+        }
+
+        return iamAccessToken;
     }
 
-
-	/**
-     * Connect the client to the Watson (Websocket) Server.
-     * If the client is currently connected, it will first disconnect and then attempt a new connection.
+    /**
+     * Connect the client to the Watson (Websocket) Server. If the client is
+     * currently connected, it will first disconnect and then attempt a new
+     * connection.
      * 
-     * @throws InterruptedException 
+     * @throws InterruptedException
      * @throws IOException
      */
     private synchronized void connect() throws InterruptedException {
@@ -1187,22 +1192,14 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
         setHasFailed(false);
 
         // Build HTTP client
-        OkHttpClient httpClient = new OkHttpClient.Builder()
-                .pingInterval(3000, TimeUnit.MILLISECONDS)
-                .readTimeout(0, TimeUnit.MILLISECONDS)
-                .writeTimeout(3000, TimeUnit.MILLISECONDS)
-                .retryOnConnectionFailure(true)
-                .build();
+        OkHttpClient httpClient = new OkHttpClient.Builder().pingInterval(3000, TimeUnit.MILLISECONDS).readTimeout(0, TimeUnit.MILLISECONDS)
+                .writeTimeout(3000, TimeUnit.MILLISECONDS).retryOnConnectionFailure(true).build();
 
         try {
             // Build request
-            String webSocketUrl = (watsonSsl ? "wss" : "ws")
-                    + "://" + watsonHost
-                    + (watsonPort == null ? "" : ":" + watsonPort) + "?skillset=" + skillset+"&userID=" + userID + "&language=" + language + "&engine=" + engine;
-            Request request = new Request.Builder()
-                    .url(webSocketUrl)
-                    .addHeader("Authorization", "Bearer " + IAMAccessToken)
-                    .build();
+            String webSocketUrl = (watsonSsl ? "wss" : "ws") + "://" + watsonHost + (watsonPort == null ? "" : ":" + watsonPort) + "?skillset=" + skillset + "&userID=" + userID
+                    + "&language=" + language + "&engine=" + engine;
+            Request request = new Request.Builder().url(webSocketUrl).addHeader("Authorization", "Bearer " + iamAccessToken).build();
 
             // initialize the watch dog
             Runnable cleanup = new CleanUp(this.audioInput, this.audioOutput, this.indicator);
@@ -1217,17 +1214,21 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
             throw new RuntimeException(e);
         } finally {
             // ZZZ - Look into this!!!
-            // Trigger shutdown of the dispatcher's executor so this process can exit cleanly.
-            //            httpClient.dispatcher().executorService().shutdown();
+            // Trigger shutdown of the dispatcher's executor so this process can exit
+            // cleanly.
+            // httpClient.dispatcher().executorService().shutdown();
         }
     }
 
     /**
      * Disconnect from the Watson (Websocket) Server if connected.
      * 
-     * @param webSocketCode - websocket exit code as defined in https://tools.ietf.org/html/rfc6455#section-7.4
-     * @param reason - Reason for closing the connection or null
-     * @throws InterruptedException 
+     * @param webSocketCode
+     *            - websocket exit code as defined in
+     *            https://tools.ietf.org/html/rfc6455#section-7.4
+     * @param reason
+     *            - Reason for closing the connection or null
+     * @throws InterruptedException
      */
     public void disconnect(int webSocketCode, String reason) throws InterruptedException {
         if (null == webSocket) {
@@ -1262,8 +1263,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
 
             for (InetAddress address : addresses) {
                 boolean isSSHReachable = LocalNetworkInterface.isReachableViaSSH(address, 100);
-                LOG.info(String.format("Address: %s\nHostname: %s\n\tis SSH reachable %b",
-                        address.getHostAddress(), address.getCanonicalHostName(), isSSHReachable));
+                LOG.info(String.format("Address: %s\nHostname: %s\n\tis SSH reachable %b", address.getHostAddress(), address.getCanonicalHostName(), isSSHReachable));
                 if (isSSHReachable) {
                     match = address;
                     break;
