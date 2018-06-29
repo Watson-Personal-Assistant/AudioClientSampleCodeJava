@@ -20,61 +20,61 @@ package wa.exceptions;
  * Indicates authentication errors.
  */
 public class AuthenticationError extends RuntimeException {
-	private static final long serialVersionUID = 1L;
-	
-	private int code;
+    private static final long serialVersionUID = 1L;
 
-	/**
-	 * Base constructor.
-	 */
-	public AuthenticationError(int code) {
-		super();
-		this.code = code;
-	}
+    private int code;
 
-	/**
-	 * @param message
-	 */
-	public AuthenticationError(int code, String message) {
-		super(message);
-		this.code = code;
-	}
+    /**
+     * Base constructor.
+     */
+    public AuthenticationError(int code) {
+        super();
+        this.code = code;
+    }
 
-	/**
-	 * @param cause
-	 */
-	public AuthenticationError(int code, Throwable cause) {
-		super(cause);
-		this.code = code;
-	}
+    /**
+     * @param message
+     */
+    public AuthenticationError(int code, String message) {
+        super(message);
+        this.code = code;
+    }
 
-	/**
-	 * @param message
-	 * @param cause
-	 */
-	public AuthenticationError(int code, String message, Throwable cause) {
-		super(message, cause);
-		this.code = code;
-	}
+    /**
+     * @param cause
+     */
+    public AuthenticationError(int code, Throwable cause) {
+        super(cause);
+        this.code = code;
+    }
 
-	/**
-	 * @param message
-	 * @param cause
-	 * @param enableSuppression
-	 * @param writableStackTrace
-	 */
-	public AuthenticationError(int code, String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
-		super(message, cause, enableSuppression, writableStackTrace);
-		this.code = code;
-	}
-	
-	/**
-	 * Get the error code for this error.
-	 * 
-	 * @return code
-	 */
-	public int getCode() {
-		return this.code;
-	}
+    /**
+     * @param message
+     * @param cause
+     */
+    public AuthenticationError(int code, String message, Throwable cause) {
+        super(message, cause);
+        this.code = code;
+    }
+
+    /**
+     * @param message
+     * @param cause
+     * @param enableSuppression
+     * @param writableStackTrace
+     */
+    public AuthenticationError(int code, String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
+        super(message, cause, enableSuppression, writableStackTrace);
+        this.code = code;
+    }
+
+    /**
+     * Get the error code for this error.
+     * 
+     * @return code
+     */
+    public int getCode() {
+        return this.code;
+    }
 
 }
