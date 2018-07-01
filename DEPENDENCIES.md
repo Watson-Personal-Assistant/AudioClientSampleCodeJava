@@ -5,6 +5,7 @@
 - OKIO (okio-1.13.0.jar). https://mvnrepository.com/artifact/com.squareup.okio/okio/1.13.0 License: Apache 2.0,  Project: https://github.com/square/okhttp
 - JSON (json-20160810.jar). https://mvnrepository.com/artifact/org.json/json/20160810 License: JSON, Project: https://github.com/stleary/JSON-java
 - Pi4J (pi4j-core-1.2-SNAPSHOT.jar).  https://oss.sonatype.org/index.html#nexus-search;gav~com.pi4j~pi4j-*~1.2-SNAPSHOT~~ License: LGPL, Project: http://pi4j.com/index.html
+- Apache Commons Lang 3 (commons-lang3-3.0.jar). https://mvnrepository.com/artifact/org.apache.commons/commons-lang3/3.0  License: License: Apache 2.0, Project: http://commons.apache.org/lang/
 
 
 - Portions Copyright (c) 1995, 2014, Oracle and/or its affiliates. All rights reserved.
