@@ -87,6 +87,8 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
 
     private String skillset = null;
 
+    private String tenantID = null;
+
     private String language = null;
 
     private String engine = null;
@@ -944,7 +946,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
     private int writeToServerCount;
     private int writeToServerBytes;
     private String iamAPiKey;
-
+  
     public synchronized void clearServerWriteLogging() {
         writeToServerCount = 0;
         writeToServerBytes = 0;
@@ -1062,6 +1064,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
         watsonHost = props.getProperty("host");
         iamAPiKey = props.getProperty("IAMAPIKey");
         skillset = props.getProperty("skillset");
+        tenantID = props.getProperty("tenantID");
 
         // Optional parameters
         watsonPort = props.getProperty("port");
@@ -1093,6 +1096,11 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
         LOG.info("USER ID (Optional): " + userID);
         LOG.info("Language (Optional): " + language);
         LOG.info("Engine (Optional): " + engine);
+        LOG.info("WATSON HOST: " + watsonHost);
+        LOG.info("WATSON PORT: " + watsonPort);
+        LOG.info("SKILLSET: " + skillset);        
+        LOG.info("TENANT ID (Optional): " + tenantID);        
+        LOG.info("WATSON IAM API Key: *****");        
 
         if (StringUtils.isBlank(watsonHost) || StringUtils.isBlank(skillset) || StringUtils.isBlank(iamAPiKey)) {
             LocalAudio.playFlacFile(LocalAudio.ERROR_INVALID_CONFIG);
@@ -1230,9 +1238,15 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
 
         try {
             // Build request
-            String webSocketUrl = (watsonSsl ? "wss" : "ws") + "://" + watsonHost + (watsonPort == null ? "" : ":" + watsonPort) + "?skillset=" + skillset + "&userID=" + userID
-                    + "&language=" + language + "&engine=" + engine;
-            Request request = new Request.Builder().url(webSocketUrl).addHeader("Authorization", "Bearer " + iamAccessToken).build();
+            String webSocketUrl = (watsonSsl ? "wss" : "ws")
+                    + "://" + watsonHost
+                    + (watsonPort == null ? "" : ":" + watsonPort) + "?skillset=" + skillset+"&userID=" + userID + "&language=" + language + "&engine=" + engine;
+            Request request = new Request.Builder()
+                    .url(webSocketUrl)
+                    .addHeader("tenantId", tenantID)
+                    .addHeader("Authorization", "Bearer " + IAMAccessToken)
+                    .build();
+
 
             // initialize the watch dog
             Runnable cleanup = new CleanUp(this.audioInput, this.audioOutput, this.indicator);
