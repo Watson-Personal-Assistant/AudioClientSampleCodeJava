@@ -25,6 +25,12 @@
           <include>*.flac</include>
         </includes>
       </resource>
+      <resource>
+        <directory>src/main/java</directory>
+        <excludes>
+          <exclude>**/*.java</exclude>
+        </excludes>
+      </resource>
     </resources>
     <plugins>
     <!-- 
@@ -72,13 +78,11 @@
               <resources>
                 <resource>
                   <directory>speech/</directory>
-				  <directory>config</directory>
-                  <filtering>true</filtering>
-                </resource>
-                <resourse>
-                  <directory>config</directory>
                   <filtering>false</filtering>
-                </resourse>
+                  <includes>
+                    <include>*.flac</include>
+                  </includes>
+                </resource>
               </resources>
             </configuration>
           </execution>
@@ -184,6 +188,11 @@
         <artifactId>jorbis</artifactId>
         <version>0.0.17.4</version>
     </dependency>
+	<dependency>
+	    <groupId>org.apache.commons</groupId>
+	    <artifactId>commons-lang3</artifactId>
+	    <version>3.0</version>
+	</dependency>
   <dependency>
     <groupId>org.apache.logging.log4j</groupId>
     <artifactId>log4j-api</artifactId>

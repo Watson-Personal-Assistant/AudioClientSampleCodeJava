@@ -1,5 +1,6 @@
+
 /**
- * Copyright 2016-2017 IBM Corporation. All Rights Reserved.
+ * Copyright 2016-2018 IBM Corporation. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,62 +18,67 @@
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Properties;
-//Import log4j classes.
-import org.apache.logging.log4j.Logger;
-
-import wa.client.Client;
 
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
+import wa.audio.LocalAudio;
+import wa.client.Client;
+import wa.exceptions.AuthenticationError;
 
 /**
- *  Main driver of the program. Create client thread and start.
- *  
- *  This reads the configure.properties file and creates a Properties object.
- *  It then creates a Client object with the Properties object.
- *  
- *  This does not exit unless:
- *  <bl>
- *   <li> It cannot open/read the configure.properties file (Exit=1)
- *   <li> It cannot create and initialize the Client (Exit=1)
- *   <li> There is a 'catastrophic' error from the client (Exit=3)
- *   <li> The process is externally terminated
- *   </bl>
- *   
+ * Main driver of the program. Create client thread and start.
+ * 
+ * This reads the configure.properties file and creates a Properties object. It
+ * then creates a Client object with the Properties object.
+ * 
+ * This does not exit unless: <bl>
+ * <li>It cannot open/read the configure.properties file (Exit=1)
+ * <li>It cannot create and initialize the Client (Exit=2)
+ * <li>The client could not authenticate with the server (Exit=3)
+ * <li>There is a 'catastrophic' error from the client (Exit=4)
+ * <li>The process is externally terminated </bl>
+ * 
  */
 public class Driver {
     // Initialize our logger
     private static final Logger LOG = LogManager.getLogger(Driver.class);
 
     /**
-     * Open and read configure.properties.  Use the properties to create a Client.
+     * Open and read configure.properties. Use the properties to create a Client.
      * Once created, start the client and let it run.
      * 
-     * Only a failure to read the properties, create and start a client, or a fatal client error, will cause this method to exit.
+     * Only a failure to read the properties, create and start a client, or a fatal
+     * client error, will cause this method to exit.
      * 
-     * @param args - None at this time
+     * @param args
+     *            - None at this time
      */
     public static void main(String args[]) {
         Thread.currentThread().setName("Driver (main)");
-        
-        LOG.info("Watson Driver (main) starting...");
+
+        LOG.info("Watson Assistant Solutions - Audio Client Driver (main) starting...");
         Client client = null;
         Properties properties = readProps();
         if (null == properties) {
+            LOG.error(
+                    "The configure.properties was not found, could not be read, or is not in valid properties file format. The configure.properties file should be in the 'config' folder.");
+            playLocalFlacAudio(LocalAudio.ERROR_NO_CONFIG_FILE);
             System.exit(1);
         }
 
         // Create the client
         try {
             client = new Client(properties);
-        }
-        catch (Throwable t) {
+        } catch (Throwable t) {
             // Any error from creating the client causes this to exit(2)
-            t.printStackTrace();
+            LOG.error("Problem trying to create and initialize the client: " + t, t);
+            playLocalFlacAudio(LocalAudio.ERROR_CLIENT_CREATE);
             System.exit(2);
         }
 
-        // The properties are read, the client is created - start it and wait for a fatal error!
+        // The properties are read, the client is created - start it and wait for a
+        // fatal error!
         Thread clientThread = new Thread(client, "Client");
         LOG.info("Starting client...");
         clientThread.start();
@@ -86,10 +92,35 @@ public class Driver {
                 }
             }
             LOG.info("Client is done!");
+            // Check for an error.
+            RuntimeException error = client.getError();
+            if (null != error && error instanceof AuthenticationError) {
+                playLocalFlacAudio(LocalAudio.ERROR_AUTH);
+                System.exit(3);
+            }
         } catch (RuntimeException re) {
             LOG.error("Exiting due to thrown RuntimeException", re);
+            System.exit(4);
         } catch (Error err) {
-            LOG.error("Exiting due to thrown Error",  err);
+            LOG.error("Exiting due to thrown Error", err);
+            System.exit(4);
+        }
+    }
+
+    /**
+     * Play a local audio file safely (catch any exception that occurs while playing
+     * and log it).
+     * 
+     * @param flacFileName
+     *            - Name of the FLAC audio file to play
+     */
+    private static void playLocalFlacAudio(String flacFileName) {
+        try {
+            LocalAudio.playFlacFile(flacFileName);
+        } catch (Throwable t) {
+            // At this point - just exit
+            // (log it, just in case it helps improve the responses)
+            LOG.error("-- could not PLAY response audio due to: " + t, t);
         }
     }
 
@@ -99,20 +130,28 @@ public class Driver {
      * @return Properties or null if any error occurred.
      */
     private static Properties readProps() {
+        return readProps("./config/configure.properties");
+    }
+
+    /* For unit testing */
+    static Properties readProps(String propFileName) {
         FileInputStream file = null;
         Properties props = null;
 
         try {
             Properties p = new Properties();
-            file = new FileInputStream("./config/configure.properties");
+            file = new FileInputStream(propFileName);
             p.load(file);
             props = p;
         } catch (Throwable t) {
             // Just return a null properties...
         } finally {
             try {
-                file.close();
-            } catch (IOException e) { }
+                if (null != file) {
+                    file.close();
+                }
+            } catch (IOException e) {
+            }
         }
         return props;
     }
