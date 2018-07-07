@@ -303,7 +303,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
                     if (ServerConnectionStatus.NOTCONNECTED == getServerConnectionStatus()) {
                         // IAMAccessToken should be retrieved from the IAM service by providing it with
                         // your cloud API Key (based on your IBM ID)
-                        this.iamAccessToken = getIAMAccessToken(iamApiKey);
+                        this.iamAccessToken = getIamAccessToken(iamApiKey);
 
                         // We need to connect...
                         connect();
@@ -1146,7 +1146,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
 
     }
 
-    private String getIAMAccessToken(String apikey) {
+    private String getIamAccessToken(String apikey) {
         String iamAccessToken = "";
         String urlParameters = "apikey=" + apikey + "&grant_type=urn%3Aibm%3Aparams%3Aoauth%3Agrant-type%3Aapikey";
         byte[] postData = urlParameters.getBytes(StandardCharsets.UTF_8);
