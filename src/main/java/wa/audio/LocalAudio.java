@@ -38,9 +38,11 @@ public class LocalAudio {
     private static final Logger LOG = LogManager.getLogger(LocalAudio.class);
 
     public static final String ERROR_AUTH = "error-auth";
+    public static final String ERROR_CLIENT_CREATE = "error-client-create";
     public static final String ERROR_INVALID_CONFIG = "error-config";
-    public static final String ERROR_NO_CONFIG_FILE = "error-no-config-file";
     public static final String ERROR_NETWORK = "error-network";
+    public static final String ERROR_NO_CONFIG_FILE = "error-no-config-file";
+
     public static final String ABORTING = "aborting";
 
     public static final String ANNOUNCE_IP = "announce-ip";

@@ -50,13 +50,14 @@ import wa.audio.AudioOutput;
 import wa.audio.AudioPlayer;
 import wa.audio.AudioSocket;
 import wa.audio.LocalAudio;
+import wa.exceptions.AuthenticationError;
+import wa.exceptions.ConnectionError;
 import wa.network.LocalNetworkInterface;
 import wa.status.StatusConsole;
 import wa.status.StatusIndicator;
 import wa.status.StatusLED;
 import wa.status.StatusPing;
 import wa.util.CallStack;
-import wa.util.Debouncer;
 import wa.util.Utils;
 
 public class Client extends WebSocketListener implements ThreadManager, Runnable {
@@ -98,10 +99,6 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
 
     private String userID = null;
 
-    private Debouncer<String> debouncer;
-
-    private final int watchDogTimeout = 5000;
-
     private String watsonVoice = null;
 
     private int commandSocketPort;
@@ -124,6 +121,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
     // Client status
     private StatusIndicator indicator;
     private StatusPing statusPingSender;
+    private RuntimeException error;
 
     public enum ServerConnectionStatus {
         NOTCONNECTED, CONNECTING, CONNECTED, READY, CLOSING
@@ -340,6 +338,8 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
             } catch (RuntimeException re) {
                 // Cannot THROW out of thread Run. Log it!
                 LOG.error(String.format("Client main thread '%s' received RuntimeException!", threadName), re);
+                // Now STOP
+                break;
             } catch (Error err) {
                 // Cannot THROW out of thread Run. Log it!
                 LOG.error(String.format("Client main thread '%s' received Error!", threadName), err);
@@ -553,6 +553,15 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
                 return (this.wakeupTriggerAllowed && (ServerConnectionStatus.READY == this.serverConnectionStatus));
             }
         }
+    }
+
+    /**
+     * The error (RuntimeException) that caused the client to close (fail)
+     * 
+     * @return error
+     */
+    public RuntimeException getError() {
+        return error;
     }
 
     public long getStatusPingRate() {
@@ -1139,16 +1148,15 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
 
     private String getIAMAccessToken(String apikey) {
         String iamAccessToken = "";
-
         String urlParameters = "apikey=" + apikey + "&grant_type=urn%3Aibm%3Aparams%3Aoauth%3Agrant-type%3Aapikey";
         byte[] postData = urlParameters.getBytes(StandardCharsets.UTF_8);
         int postDataLength = postData.length;
         String request = "https://iam.bluemix.net/oidc/token";
-        URL url;
+        URL url = null;
+        HttpURLConnection conn = null;
         try {
             url = new URL(request);
-
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn = (HttpURLConnection) url.openConnection();
             conn.setDoOutput(true);
             conn.setInstanceFollowRedirects(false);
             conn.setRequestMethod("POST");
@@ -1164,11 +1172,33 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
             String response = org.apache.commons.io.IOUtils.toString(conn.getInputStream(), StandardCharsets.UTF_8);
             JSONObject jsonObj = new JSONObject(response);
             iamAccessToken = jsonObj.getString("access_token");
-
         } catch (IOException e) {
-            LOG.error(String.format("Error - Could not convert IAM API Key to IAM Access token : %s", e.getMessage()), e);
+            LOG.error(String.format("Error - Could not connect to IAM endpoint or could not process token: %s", e.getMessage()), e);
+            // try to get more detailed information about the error.
+            if (null != conn) {
+                try {
+                    int responseCode = conn.getResponseCode();
+                    // TODO: Make these exceptions specific to the error
+                    switch (responseCode) {
+                    case 400:
+                        error = new AuthenticationError(responseCode, e);
+                        break;
+                    case 404:
+                        error = new AuthenticationError(responseCode, e);
+                        break;
+                    default:
+                        error = new RuntimeException(e);
+                        break;
+                    }
+                } catch (IOException e2) {
+                    error = new ConnectionError(e2.getMessage());
+                }
+            } else {
+                error = new ConnectionError(e.getMessage());
+            }
+            setHasFailed(true);
+            throw error;
         }
-
         return iamAccessToken;
     }
 

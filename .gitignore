@@ -1,5 +1,6 @@
 .idea/*
 .settings/org.eclipse.*
+.settings/org.eclipse.jdt.ui.prefs
 .DS_Store
 target/*
 target-display/*
@@ -15,3 +16,4 @@ build
 /target*/
 /target/
 /test/
+/*.jar
