@@ -15,14 +15,6 @@
  */
 
 /**
- *  Uses the main.Driver class to start and monitor the client.
- *  
- *  This provides a (default package) `main` method that can be used to start the client without requiring a package identifier.
+ * Contains the main Driver class used to start and monitor the client.
  */
-public class Driver {
-
-	public static void main(String args[]) {
-		main.Driver mainDriver = new main.Driver();
-		mainDriver.runClient();
-    }
-}
+package main;

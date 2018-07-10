@@ -61,7 +61,7 @@ import wa.util.CallStack;
 import wa.util.Utils;
 
 public class Client extends WebSocketListener implements ThreadManager, Runnable {
-    // Initialize our loggerLOG_SERVER_COMM_RECEIVE
+    // Initialize our loggers
     private static final Logger LOG = LogManager.getLogger(Client.class);
     private static final Logger LOG_SERVER_COMM_RECEIVE = LogManager.getLogger("GLOBAL.Server.Communication.Receive");
     private static final Logger LOG_SERVER_COMM_SEND = LogManager.getLogger("GLOBAL.Server.Communication.Send");
@@ -303,7 +303,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
                     if (ServerConnectionStatus.NOTCONNECTED == getServerConnectionStatus()) {
                         // IAMAccessToken should be retrieved from the IAM service by providing it with
                         // your cloud API Key (based on your IBM ID)
-                        iamAccessToken = getIAMAccessToken(iamAPiKey);
+                        this.iamAccessToken = getIamAccessToken(iamApiKey);
 
                         // We need to connect...
                         connect();
@@ -943,7 +943,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
 
     private int writeToServerCount;
     private int writeToServerBytes;
-    private String iamAPiKey;
+    private String iamApiKey;
 
     public synchronized void clearServerWriteLogging() {
         writeToServerCount = 0;
@@ -1060,7 +1060,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
     private void initialize(Properties props) {
         // Required parameters
         watsonHost = props.getProperty("host");
-        iamAPiKey = props.getProperty("IAMAPIKey");
+        iamApiKey = props.getProperty("IAMAPIKey");
         skillset = props.getProperty("skillset");
 
         // Optional parameters
@@ -1089,12 +1089,12 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
         LOG.info("WATSON HOST: " + watsonHost);
         LOG.info("WATSON PORT (Optional): " + watsonPort);
         LOG.info("SKILLSET: " + skillset);
-        LOG.info("WATSON IAM API Key: " + (null == iamAPiKey ? "null" : "*****"));
+        LOG.info("WATSON IAM API Key: " + (null == iamApiKey ? "null" : "*****"));
         LOG.info("USER ID (Optional): " + userID);
         LOG.info("Language (Optional): " + language);
         LOG.info("Engine (Optional): " + engine);
 
-        if (StringUtils.isBlank(watsonHost) || StringUtils.isBlank(skillset) || StringUtils.isBlank(iamAPiKey)) {
+        if (StringUtils.isBlank(watsonHost) || StringUtils.isBlank(skillset) || StringUtils.isBlank(iamApiKey)) {
             LocalAudio.playFlacFile(LocalAudio.ERROR_INVALID_CONFIG);
             throw new Error("Missing required host, authentication or configuration information.  Check the configure.properties file.  Aborting...");
         }
@@ -1146,9 +1146,8 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
 
     }
 
-    private String getIAMAccessToken(String apikey) {
-        String IAMAccessToken = "";
-
+    private String getIamAccessToken(String apikey) {
+        String iamAccessToken = "";
         String urlParameters = "apikey=" + apikey + "&grant_type=urn%3Aibm%3Aparams%3Aoauth%3Agrant-type%3Aapikey";
         byte[] postData = urlParameters.getBytes(StandardCharsets.UTF_8);
         int postDataLength = postData.length;
@@ -1157,7 +1156,6 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
         HttpURLConnection conn = null;
         try {
             url = new URL(request);
-
             conn = (HttpURLConnection) url.openConnection();
             conn.setDoOutput(true);
             conn.setInstanceFollowRedirects(false);
@@ -1173,8 +1171,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
 
             String response = org.apache.commons.io.IOUtils.toString(conn.getInputStream(), StandardCharsets.UTF_8);
             JSONObject jsonObj = new JSONObject(response);
-            IAMAccessToken = jsonObj.getString("access_token");
-
+            iamAccessToken = jsonObj.getString("access_token");
         } catch (IOException e) {
             LOG.error(String.format("Error - Could not connect to IAM endpoint or could not process token: %s", e.getMessage()), e);
             // try to get more detailed information about the error.
@@ -1202,7 +1199,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
             setHasFailed(true);
             throw error;
         }
-        return IAMAccessToken;
+        return iamAccessToken;
     }
 
     /**

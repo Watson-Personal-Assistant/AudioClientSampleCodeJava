@@ -1,3 +1,4 @@
+package _junitTests;
 /**
  * Copyright 2018 IBM Corporation. All Rights Reserved.
  *
@@ -15,14 +16,10 @@
  */
 
 /**
- *  Uses the main.Driver class to start and monitor the client.
- *  
- *  This provides a (default package) `main` method that can be used to start the client without requiring a package identifier.
+ * Categories of JUnit tests for slow running tests (tests you might not want to run in an automated acceptance test suite.
  */
-public class Driver {
-
-	public static void main(String args[]) {
-		main.Driver mainDriver = new main.Driver();
-		mainDriver.runClient();
-    }
+public class JUnitTestCategories {
+	
+	public interface GeneralTest {/* Interface marker for typical (fast-running) tests */}
+	public interface LongRunningTest {/* Interface marker for slow-running tests */}	
 }

@@ -1,4 +1,5 @@
 package wa.status;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -34,34 +35,45 @@ public class StatusConsole implements StatusIndicator {
         statusOn = false;
         if (null != blinkThread) {
             blinkThread.interrupt();
+            try {
+                blinkThread.join(5000);
+            } catch (InterruptedException ignore) {
+                // Ignore...
+            }
             blinkThread = null;
         }
     }
-    
+
     private Thread createBlinkThread(long onOffTime) {
         Thread t = new Thread(() -> {
-          try {
-            while (blink) {
-              char statusChar = (toggle() ? 'O' : 'o');
-              System.out.print(statusChar);
-              Thread.sleep(onOffTime);
+            try {
+                statusOn = false;
+                while (blink) {
+                    char statusChar = (toggle() ? '\u00D6' : '\u00F8'); // on='large circle with dots' : off='small circle with diagonal cross'
+                    System.out.print("<<" + statusChar + ">>");
+                    Thread.sleep(onOffTime);
+                }
+            } catch (InterruptedException ie) {
+                // Cancel using 'finally'...
+            } finally {
+                System.out.println("\nStatus indicator: blink off");
+                blink = false;
+                statusOn = false;
             }
-          } catch (InterruptedException ignored) {
-          } finally {
-              cancelBlink();
-          }
         });
         t.setName("Status-blink-thread");
         return t;
-      }
+    }
 
     private boolean toggle() {
         statusOn = !statusOn;
         return statusOn;
     }
 
-    /**
-     * Turn on the indicator.
+    /*
+     * (non-Javadoc)
+     * 
+     * @see wa.status.StatusIndicator#on()
      */
     @Override
     public void on() {
@@ -70,8 +82,20 @@ public class StatusConsole implements StatusIndicator {
         LOG.info("\nStatus indicator: on");
     }
 
-    /**
-     * Turn off the indicator.  This also cancels blinking.
+    /*
+     * (non-Javadoc)
+     * 
+     * @see wa.status.StatusIndicator#isOn()
+     */
+    @Override
+    public boolean isOn() {
+        return this.statusOn;
+    }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see wa.status.StatusIndicator#off()
      */
     @Override
     public void off() {
@@ -80,14 +104,37 @@ public class StatusConsole implements StatusIndicator {
         LOG.info("\nStatus indicator: off");
     }
 
-    /**
-     * Blink the indicator at the given rate.
+    /*
+     * (non-Javadoc)
+     * 
+     * @see wa.status.StatusIndicator#isOff()
+     */
+    @Override
+    public boolean isOff() {
+        return !this.statusOn;
+    }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see wa.status.StatusIndicator#blink(long onOffTime)
      */
     @Override
     public void blink(long onOffTime) {
-        LOG.info("Status indicator: blink on/off: " + onOffTime);
         cancelBlink();
+        blink = true;
         blinkThread = createBlinkThread(onOffTime);
         blinkThread.start();
+        LOG.info("Status indicator: blink on/off: " + onOffTime);
+    }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see wa.status.StatusIndicator#isBlinking()
+     */
+    @Override
+    public boolean isBlinking() {
+        return (null != blinkThread);
     }
 }

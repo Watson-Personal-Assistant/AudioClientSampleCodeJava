@@ -1,5 +1,5 @@
 .idea/*
-.settings/org.eclipse.jdt.ui.prefs
+.settings/org.eclipse.*
 .DS_Store
 target/*
 target-display/*
