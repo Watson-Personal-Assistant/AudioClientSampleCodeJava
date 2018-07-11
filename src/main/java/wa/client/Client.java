@@ -98,6 +98,8 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
     private Boolean watsonSsl = true;
 
     private String userID = null;
+    
+    private String tenantID = null;
 
     private String watsonVoice = null;
 
@@ -1071,7 +1073,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
 
         String noSsl = props.getProperty("nossl", "false");
         watsonSsl = noSsl.equalsIgnoreCase("false");
-        // the userId
+        tenantID = props.getProperty("tenantID");
         userID = props.getProperty("userID");
         watsonVoice = props.getProperty("voice");
         commandSocketPort = Integer.parseInt(props.getProperty("cmdSocketPort", "10010"));
@@ -1090,6 +1092,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
         LOG.info("WATSON PORT (Optional): " + watsonPort);
         LOG.info("SKILLSET: " + skillset);
         LOG.info("WATSON IAM API Key: " + (null == iamApiKey ? "null" : "*****"));
+        LOG.info("TENANT ID (Optional): " + tenantID);
         LOG.info("USER ID (Optional): " + userID);
         LOG.info("Language (Optional): " + language);
         LOG.info("Engine (Optional): " + engine);
@@ -1227,7 +1230,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
 
         try {
             // Build request
-            String webSocketUrl = (watsonSsl ? "wss" : "ws") + "://" + watsonHost + (watsonPort == null ? "" : ":" + watsonPort) + "?skillset=" + skillset + "&userID=" + userID
+            String webSocketUrl = (watsonSsl ? "wss" : "ws") + "://" + watsonHost + (watsonPort == null ? "" : ":" + watsonPort) + "?skillset=" + skillset + "&tenantID=" + tenantID + "&userID=" + userID
                     + "&language=" + language + "&engine=" + engine;
             Request request = new Request.Builder().url(webSocketUrl).addHeader("Authorization", "Bearer " + iamAccessToken).build();
 

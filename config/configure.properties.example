@@ -11,6 +11,9 @@ IAMAPIKey=
 # Choosing which skill set to use (Required parameter)
 skillset=
 
+# tenant ID can be passed (Optional parameter for customers with just one tenant - Required parameter for customers that have more then one tenant linked on their IBM ID account)
+#tenantID=
+
 # Client language specific preferences can be passed (Optional parameter with a default value: en-US)
 #language=en-US
 
