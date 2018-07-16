@@ -22,6 +22,16 @@
       </Policies>
       <DefaultRolloverStrategy max="10" />
     </RollingFile>
+    
+    <!-- Performance Appender - rolls at size limit. Obviously, get as much as possible, but need to keep size reasonable to handle. -->
+    <RollingFile name="PERFORMANCE" fileName="${log-path}/perf.log" filePattern="${log-path}/perf-%d{yyyy-MM-dd}-%i.log.gz">
+      <PatternLayout pattern="%d{ISO8601} [%t] %-5level %logger{36} - %m%n"/>
+      <Policies>
+        <OnStartupTriggeringPolicy /> <!--  Start a new log file on start -->
+        <SizeBasedTriggeringPolicy size="30 MB" /> <!--  Start a new file when the size reaches 30 Meg -->
+      </Policies>
+      <DefaultRolloverStrategy max="10" />
+    </RollingFile>
   </Appenders>
   
   <Loggers>
@@ -32,6 +42,12 @@
     </Root>
 
   	<Logger name="Driver" level="info" /> <!--  Top level device ('main') class -->
+
+	<!-- Set level to 'debug' to enable Performance Logging. Set to 'Info' (or higher) to disable Performance Logging -->
+  	<Logger name="GLOBAL.Performance" additivity="false" level="debug" >
+      <AppenderRef ref="Console"/>
+  	  <AppenderRef ref="PERFORMANCE" />
+  	</Logger>
 
   	<Logger name="GLOBAL.Server.Communication" level="info" />
   	<!-- <Logger name="GLOBAL.Server.Communication.Receive" level="info" /> -->
@@ -64,7 +80,7 @@
   	<Logger name="wa.util.Debouncer" level="info" />
   	<Logger name="wa.util.NotifyingThread" level="info" />
   	<Logger name="wa.util.Utils" level="info" />
-
+  	
   </Loggers>
   
 </Configuration>
