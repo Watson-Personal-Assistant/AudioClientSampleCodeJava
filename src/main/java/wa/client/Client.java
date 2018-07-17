@@ -1074,6 +1074,8 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
         String noSsl = props.getProperty("nossl", "false");
         watsonSsl = noSsl.equalsIgnoreCase("false");
         tenantID = props.getProperty("tenantID");
+        if (tenantID == null)
+        		tenantID="";
         userID = props.getProperty("userID");
         watsonVoice = props.getProperty("voice");
         commandSocketPort = Integer.parseInt(props.getProperty("cmdSocketPort", "10010"));
@@ -1230,9 +1232,12 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
 
         try {
             // Build request
-            String webSocketUrl = (watsonSsl ? "wss" : "ws") + "://" + watsonHost + (watsonPort == null ? "" : ":" + watsonPort) + "?skillset=" + skillset + "&tenantID=" + tenantID + "&userID=" + userID
+            String webSocketUrl = (watsonSsl ? "wss" : "ws") + "://" + watsonHost + (watsonPort == null ? "" : ":" + watsonPort) + "?skillset=" + skillset + "&userID=" + userID
                     + "&language=" + language + "&engine=" + engine;
-            Request request = new Request.Builder().url(webSocketUrl).addHeader("Authorization", "Bearer " + iamAccessToken).build();
+            Request request = new Request.Builder().url(webSocketUrl)
+            		.addHeader("Authorization", "Bearer " + iamAccessToken)
+            		.addHeader("tenantid", tenantID)
+            		.build();
 
             // initialize the watch dog
             Runnable cleanup = new CleanUp(this.audioInput, this.audioOutput, this.indicator);
