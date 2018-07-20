@@ -13,24 +13,24 @@
       <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %m%n"/>
     </Console>
     
-    <!-- Rolling File Appender - rolls daily -->
+    <!-- Rolling File Appender - rolls on start or daily -->
     <RollingFile name="LOG-FILE" fileName="${log-path}/client.log" filePattern="${log-path}/client-%d{yyyy-MM-dd}-%i.log.gz">
       <PatternLayout pattern="%d{ISO8601} [%t] %-5level %logger{36} - %m%n"/>
       <Policies>
         <OnStartupTriggeringPolicy />
         <TimeBasedTriggeringPolicy />
       </Policies>
-      <DefaultRolloverStrategy max="10" />
+      <DefaultRolloverStrategy max="9" />
     </RollingFile>
     
-    <!-- Performance Appender - rolls at size limit. Obviously, get as much as possible, but need to keep size reasonable to handle. -->
+    <!-- Performance Appender - rolls at size limit. Obviously, get as much as possible, but need to keep size reasonable to handle analysis. -->
     <RollingFile name="PERFORMANCE" fileName="${log-path}/perf.log" filePattern="${log-path}/perf-%d{yyyy-MM-dd}-%i.log.gz">
-      <PatternLayout pattern="%d{ISO8601} [%t] %-5level %logger{36} - %m%n"/>
+      <PatternLayout pattern="%d{ISO8601} %logger{36} - %m%n"/>
       <Policies>
         <OnStartupTriggeringPolicy /> <!--  Start a new log file on start -->
         <SizeBasedTriggeringPolicy size="30 MB" /> <!--  Start a new file when the size reaches 30 Meg -->
       </Policies>
-      <DefaultRolloverStrategy max="10" />
+      <DefaultRolloverStrategy max="9" />
     </RollingFile>
   </Appenders>
   
@@ -60,7 +60,7 @@
   	<Logger name="wa.audio.AudioSocket" level="info" />
   	<Logger name="wa.audio.LocalAudio" level="info" />
 
-  	<Logger name="wa.client.Client" level="info" />
+  	<Logger name="wa.client.Client" level="debug" />
   	<Logger name="wa.client.ClientHelpers" level="info" />
   	<Logger name="wa.client.Client.SocketCommandProcessor" level="info" />
   	<Logger name="wa.client.Client.ThreadManager" level="info" />
@@ -80,7 +80,6 @@
   	<Logger name="wa.util.Debouncer" level="info" />
   	<Logger name="wa.util.NotifyingThread" level="info" />
   	<Logger name="wa.util.Utils" level="info" />
-  	
   </Loggers>
   
 </Configuration>

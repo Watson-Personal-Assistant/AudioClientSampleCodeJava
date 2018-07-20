@@ -50,9 +50,11 @@ import wa.audio.AudioOutput;
 import wa.audio.AudioPlayer;
 import wa.audio.AudioSocket;
 import wa.audio.LocalAudio;
+import wa.commonLogging.CommonLogging;
+import wa.commonLogging.PerfInfoNameValue;
+import wa.commonLogging.PerfNumericNameValue;
 import wa.exceptions.AuthenticationError;
 import wa.exceptions.ConnectionError;
-import wa.commonLogging.CommonLogging;
 import wa.network.LocalNetworkInterface;
 import wa.status.StatusConsole;
 import wa.status.StatusIndicator;
@@ -142,16 +144,20 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
     private boolean urlMode = false;
     private boolean muteThisClient = false;
 
-    // Performance data
-    private long openMicTime = 0;
-    private long transcriptReceivedTime = 0;
-    private long responseReceivedTime = 0;
-    private long textReceivedTime = 0;
-    private long audioStartReceivedTime = 0;
-    private long audioEndReceivedTime = 0;
-    private long audioPacketCount = 0;
-    private long audioDataSize = 0;
-
+    // Performance data (system time stamps)
+    private boolean perfDataSent = false;
+    private Long wakeupTriggerReceivedTS = null;
+    private Long transcriptReceivedTS = null;
+    private Long responseReceivedTS = null;
+    private Long textReceivedTS = null;
+    private Long audioStartReceivedTS = null;
+    private Long audioEndReceivedTS = null;
+    private Long audioPacketCount = (long) 0;
+    private Long audioDataSize = (long) 0;
+    private String performanceComment = null;
+    private String performanceTextResponse = null;
+    private String performanceTextTranscription = null;
+    
     private class AuthException extends IOException {
         private static final long serialVersionUID = 1L;
 
@@ -530,7 +536,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
             }
 
             wakeupTriggerAllowed = true;
-            LOG.debug("Wakeup trigger IS NOW allowed.");
+            LOG.debug("Wakeup trigger `IS NOW` allowed.");
             getSocketCommandProcessor().sendWakeupTriggerIsAllowed(true);
         }
     }
@@ -540,7 +546,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
      */
     private void wakeupTriggerNotAllowed() {
         synchronized (wakeupTriggerAllowedLock) {
-            LOG.debug("Wakeup trigger IS NOW NOT allowed.");
+            LOG.debug("Wakeup trigger `IS NOT` allowed.");
             cancelWakeupTriggerEnabler();
             wakeupTriggerAllowed = false;
             getSocketCommandProcessor().sendWakeupTriggerIsAllowed(false);
@@ -679,6 +685,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
 
         switch (action) {
         case "error":
+            LOG.debug("audio_handleAction_error");
             String errMsg = null;
             JSONObject errData = response.optJSONObject("error");
             if (null != errData) {
@@ -693,17 +700,24 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
             return;
 
         case "stt_transcript":
-            transcriptReceivedTime = System.currentTimeMillis();
-            LOG.info(String.format("STT transcript -> '%s' confidence -> %.2f%% transaction id -> '%s'", response.optString("transcript"), response.optDouble("confidence") * 100,
+            LOG.debug("audio_handleAction_stt_stranscript");
+            transcriptReceivedTS = System.currentTimeMillis();
+            String transcript = response.optString("transcript");
+            LOG.info(String.format("STT transcript -> '%s' confidence -> %.2f%% transaction id -> '%s'", transcript, response.optDouble("confidence") * 100,
                     response.optString("transactionId")));
+            
+            this.performanceTextTranscription = transcript;
+            
             if (this.audioInput.micIsOpen()) {
                 this.audioInput.micClose();
             }
             break;
 
         case "text":
-            textReceivedTime = System.currentTimeMillis();
-            LOG.info(String.format("Text: \"%s\"", response.optString("speech")));
+            LOG.debug("audio_handleAction_text");
+            textReceivedTS = System.currentTimeMillis();
+            performanceTextResponse = response.optString("speech");
+            LOG.info(String.format("Text: \"%s\"", performanceTextResponse));
 
             voiceUrl = response.optString("voice");
 
@@ -730,10 +744,12 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
             } else {
                 LOG.debug("client muted");
             }
+            
             break;
 
         case "response":
-            responseReceivedTime = System.currentTimeMillis();
+            LOG.debug("audio_handleAction_response");
+            responseReceivedTS = System.currentTimeMillis();
             data = response.optJSONObject("data");
             if (data == null) {
                 LOG.error("No data key in response object.");
@@ -826,7 +842,8 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
             break;
 
         case "audio_start":
-            audioStartReceivedTime = System.currentTimeMillis();
+            LOG.debug("audio_start");
+            audioStartReceivedTS = System.currentTimeMillis();
             id = response.getString("id");
             // Keep track of the previous audio to handle barge in with a new question
             previousAudioId = currentAudioId;
@@ -850,6 +867,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
             break;
 
         case "audio_data":
+            LOG.debug("audio_data");
             if (urlMode) {
                 LOG.debug(" will play from url...");
                 break;
@@ -864,7 +882,6 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
                 return;
             }
 
-            // ZZZ debouncer.call(id);
             data = response.optJSONObject("data");
 
             if (data == null) {
@@ -897,24 +914,21 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
             break;
 
         case "audio_end":
+            LOG.debug("audio_end");
             LOG.debug(String.format("handleAction:audio_end - Prompt:%b\n %s", shouldPrompt, response));
 
-            voiceUrl = null;
-            audioEndReceivedTime = System.currentTimeMillis();
+            audioEndReceivedTS = System.currentTimeMillis();
+            // Log our transaction performance information.
+            logInteractionPerf();
 
+            voiceUrl = null;
             id = response.getString("id");
             if (!id.equals(currentAudioId)) {
                 LOG.warn("out of sequence audio_end ignored");
                 return;
             }
-
             if (null != endOfAudioOutputTask) {
                 endOfAudioOutputTask.complexPromptSttOptions(promptSttOptionsInResponse);
-            }
-
-            // Output performance data
-            if (CommonLogging.isPerfomanceLogEnabled()) {
-                CommonLogging.logPerformance(this.getClass().getSimpleName(), "handleAction", openMicTime, audioStartReceivedTime, "Open mic to Audio Start (received)", "This is the time from the wake-up trigger to the point that audio has been received");
             }
 
             audioOutput.finish();
@@ -996,21 +1010,79 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
         audioOutput.enable();
 
         this.audioInput.setInputSource(inputSource);
+
         // Clear our performance values if logging is enabled
+        performanceComment = "Client-Interaction";
         if (CommonLogging.isPerfomanceLogEnabled()) {
-            openMicTime = System.currentTimeMillis();
-            transcriptReceivedTime = 0;
-            responseReceivedTime = 0;
-            textReceivedTime = 0;
-            audioStartReceivedTime = 0;
-            audioEndReceivedTime = 0;
-            audioPacketCount = 0;
-            audioDataSize = 0;
+            if (!perfDataSent) {
+                logInteractionPerf();
+            }
+            perfDataSent = false;
+            wakeupTriggerReceivedTS = System.currentTimeMillis();
+            transcriptReceivedTS = null;
+            responseReceivedTS = null;
+            textReceivedTS = null;
+            audioStartReceivedTS = null;
+            audioEndReceivedTS = null;
+            audioPacketCount = (long) 0;
+            audioDataSize = (long) 0;
+            performanceTextResponse = null;
+            performanceTextTranscription = null;
         }
         wakeupTriggerNotAllowed();
         audioInput.capture();
 
         return true;
+    }
+
+    /**
+     * Log the current performance parameters.
+     * 
+     * This uses the global performance parameters to generate a message and log it.
+     */
+    private void logInteractionPerf() {
+        Long sttRxTime = calculateDuration(wakeupTriggerReceivedTS, transcriptReceivedTS);
+        Long respRxTime = calculateDuration(wakeupTriggerReceivedTS, responseReceivedTS);
+        Long textRxTime = calculateDuration(wakeupTriggerReceivedTS, textReceivedTS);
+        Long audioStartRxTime = calculateDuration(wakeupTriggerReceivedTS, audioStartReceivedTS);
+        Long audioEndRxTime = calculateDuration(wakeupTriggerReceivedTS, audioEndReceivedTS);
+        
+        
+        ArrayList<PerfNumericNameValue> perfNumericElements = new ArrayList<PerfNumericNameValue>();
+        perfNumericElements.add(new PerfNumericNameValue("Trigger: ", wakeupTriggerReceivedTS));
+        perfNumericElements.add(new PerfNumericNameValue("STT: ", sttRxTime));
+        perfNumericElements.add(new PerfNumericNameValue("Resp: ", respRxTime));
+        perfNumericElements.add(new PerfNumericNameValue("Text: ", textRxTime));
+        perfNumericElements.add(new PerfNumericNameValue("Audio> ", audioStartRxTime));
+        perfNumericElements.add(new PerfNumericNameValue("Audio! ", audioEndRxTime));
+        perfNumericElements.add(new PerfNumericNameValue("Packets: ", audioPacketCount));
+        perfNumericElements.add(new PerfNumericNameValue("Data: ", audioDataSize));
+ 
+        ArrayList<PerfInfoNameValue> perfInfoElements = new ArrayList<PerfInfoNameValue>();
+        perfInfoElements.add(new PerfInfoNameValue("Method: ", (urlMode ? "URL" : "Stream")));
+        perfInfoElements.add(new PerfInfoNameValue("STT: ", performanceTextTranscription));
+        perfInfoElements.add(new PerfInfoNameValue("RESP: ", performanceTextResponse));
+          
+        CommonLogging.logPerformanceElements("CLIENT", performanceComment, perfNumericElements, perfInfoElements);
+        perfDataSent = true;
+    }
+
+    /**
+     * Calculate the duration between two timestamps taking into consideration null values.
+     * 
+     * @param startTS
+     * @param endTS
+     * 
+     * @return The difference or null if either element it null
+     */
+    private Long calculateDuration(Long startTS, Long endTS) {
+        // If either is null - return null
+        if (null == endTS || null == startTS) {
+            return null;
+        }
+        long difference = endTS.longValue() - startTS.longValue();
+        
+        return new Long(difference);
     }
 
     /**

@@ -16,6 +16,8 @@
 
 package wa.commonLogging;
 
+import java.util.Collection;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -24,20 +26,10 @@ import org.apache.logging.log4j.Logger;
  * Common logging identifiers.
  */
 public class CommonLogging {
-    /** 
-     * Performance logging 
-     * <br/>
-     * Format is (tab separated fields):
-     * <bl>
-     *  <li> Class name </li>
-     *  <li> Method name </li>
-     *  <li> Start time (absolute in ms) </li>
-     *  <li> End time (absolute in ms) </li>
-     *  <li> Total time (absolute end-start) </li>
-     *  <li> Comments (anything that could be important to analyzing the log) </li>
-     * </bl>
-     *  
-     * */
+    
+    private static final String BLANK = "";
+    private static final char TAB = '\t';
+    
     static Logger LOG_PERFORMANCE = LogManager.getLogger("GLOBAL.Performance");
 
     /** Communication loggers - when sending */
@@ -45,22 +37,69 @@ public class CommonLogging {
 	/** Communication loggers - when receiving */
     public static Logger LOG_SERVER_COMM_RECEIVE = LogManager.getLogger("GLOBAL.Server.Communication.Receive");
     
+    static {
+        LOG_PERFORMANCE.info("<<STARTED>>");
+    }
+    
     /**
-     * Create a log message in the correct format given the input parameters.
+     * Log a performance message in the correct format given the input parameters.
      * (no validation is done)
      * 
-     * @param className
-     * @param methodName
-     * @param startTime
-     * @param endTime
-     * @param operation
-     * @param comments
-     */
-    public static void logPerformance(String className, String methodName, long startTime, long endTime, String operation, String comments) {
-    	long totalTime = endTime - startTime;
-    	String comment = (StringUtils.isBlank(comments) ? "" : comments.trim());
-    	String logMsg = String.format("%s\t%s\t%d\t%d\t%d\t%s\t%s", className, methodName, startTime, endTime, totalTime, operation, comment);
-    	LOG_PERFORMANCE.debug(logMsg);
+     * The format of each logged line is:
+     * <br/>
+     * (tab separated fields):
+     * <bl>
+     *  <li> Identifier </li>
+     *  <li> Comment </li>
+     *  <li> Perf Numeric Value Name1 </li>
+     *  <li> Perf Numeric Value Value1 (numeric) </li>
+     *  <li> Perf Numeric Value Name2 </li>
+     *  <li> Perf Numeric Value Value2 (numeric) </li>
+     *  <li> Perf Numeric Value Name3 </li>
+     *  <li> Perf Numeric Value Value3 (numeric) </li>
+     *  <li> etc... </li>
+     *  <li> Perf Info Value Name 1 </li>
+     *  <li> Perf Info Value Value1 </li>
+     *  <li> etc... </li>
+     * </bl>
+     *
+     * The Collection.iterator() is used to access the elements. 
+     * If the order of the elements in the log file is important a collection based 
+     * on a class that guarantees order needs to be used (List, etc.).
+     * 
+     * @param identifier - Identifier string that will be written to the log after the datetime stamp and 'PERF'
+     * @param comment - Comment that will be written to the log after the identifier
+     * @param elements - A collection of `PerfNumericNameValue` elements that will be written to the log (tab separated) [can be null]
+     * @param infoElements - A collection of `PerfInfoNameValue` elements that will be written to the log (tab separated) [can be null]
+     **/
+    public static void logPerformanceElements(String identifier, String comment, Collection<PerfNumericNameValue> valueElements, Collection<PerfInfoNameValue> infoElements) {
+        if (isPerfomanceLogEnabled()) {
+        	String logIdentifier = (StringUtils.isEmpty(identifier) ? BLANK : identifier);
+        	String logComment = (StringUtils.isBlank(comment) ? BLANK : comment);
+        	
+        	// Create the log message
+        	StringBuilder sb = new StringBuilder();
+        	//  Identifier and Comment
+        	sb.append(logIdentifier).append(TAB);
+        	sb.append(logComment);
+        	//  Performance value elements
+        	if (null != valueElements)
+        	for (PerfNumericNameValue element : valueElements) {
+        	    sb.append(TAB);
+        	    String value = (element.getValue() == null ? BLANK : element.getValue().toString()); // TODO: Possibly improve formatting based on type?
+        	    sb.append(element.getName()).append(TAB).append(value);
+        	}
+            if (null != infoElements) {
+                for (PerfInfoNameValue element : infoElements) {
+                    sb.append(TAB);
+                    String value = (element.getValue() == null ? BLANK : element.getValue());
+                    sb.append(element.getName()).append(TAB).append(value);
+                }
+            }
+  	
+        	// Log the line...
+        	LOG_PERFORMANCE.debug(sb.toString());
+        }
     }
     
     /**
