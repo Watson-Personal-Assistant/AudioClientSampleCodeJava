@@ -15,7 +15,7 @@ skillset=
 #tenantID=
 
 # Client language specific preferences can be passed (Optional parameter with a default value: en-US)
-#language=en-US
+language=en-US
 
 # Choosing which STT and TTS engine to convert audio to text and text to audio - possible values are : watson, google , (Optional parameter with a default value : watson)
 #engine=
