@@ -32,9 +32,10 @@ useDefaultAudio=true
 nogpio=true
 
 ### Remote controller capability
-# The command and audio socket ports for use with a socket connected controller.
-cmdSocketPort=10010
-audioSocketPort=10011
+# The command and audio socket ports for use with a socket connected controller (Default = 20991/20992)
+cmdSocketPort=20991
+audioSocketPort=20992
+
 # Client status update ping rate in mS (0 = no status ping. Default = 7000)
 statusPingRate=7000
 

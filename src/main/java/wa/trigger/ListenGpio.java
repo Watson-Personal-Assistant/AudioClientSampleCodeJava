@@ -18,13 +18,26 @@ package wa.trigger;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.pi4j.io.gpio.*;
+import com.pi4j.io.gpio.GpioController;
+import com.pi4j.io.gpio.GpioFactory;
+import com.pi4j.io.gpio.GpioPinDigitalInput;
+import com.pi4j.io.gpio.Pin;
+import com.pi4j.io.gpio.PinPullResistance;
+import com.pi4j.io.gpio.PinState;
+import com.pi4j.io.gpio.RaspiPin;
 import com.pi4j.io.gpio.event.GpioPinDigitalStateChangeEvent;
 import com.pi4j.io.gpio.event.GpioPinListenerDigital;
 
 import wa.audio.AudioInput;
 import wa.client.Client;
 
+/** 
+ * Uses the Raspberry Pi GPIO pin to trigger input.
+ * 
+ * The GPIO pins used are identified by the `WiringPi/Pi4J` convention.
+ * It is important to understand that there are different conventions for numbering.
+ * 
+ */
 public class ListenGpio extends Thread {
     // Initialize our logger
     private static final Logger LOG = LogManager.getLogger(ListenGpio.class);
@@ -43,7 +56,7 @@ public class ListenGpio extends Thread {
     @Override
     public void run() {
         try {
-            Pin inputPin = RaspiPin.GPIO_04;
+            Pin inputPin = RaspiPin.GPIO_26;
             LOG.info("Setup GPIO, Pin " + inputPin.getName());
             gpio = GpioFactory.getInstance();
             myButton = gpio.provisionDigitalInputPin(inputPin, PinPullResistance.PULL_UP);
@@ -53,7 +66,7 @@ public class ListenGpio extends Thread {
                 PinState buttonState = event.getState();
 
                 if (buttonState.isHigh()) {
-                    LOG.info("Button pressed");
+                    LOG.info("Button pressed - wake up");
                     try {
                         boolean accepted = client.onWakeupTriggerReceived(AudioInput.InputSource.MICROPHONE);
                         if (!accepted) {
@@ -70,6 +83,8 @@ public class ListenGpio extends Thread {
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+        } catch (Exception ex) {
+            LOG.error("Error in GPIO Trigger: " + ex,  ex);
         } finally {
             if (myButton != null) {
                 myButton.removeAllListeners();

@@ -848,7 +848,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
             // and blink the status LED
             this.endOfAudioOutputTask = new EndOfAudioOutputTask(id, shouldPrompt, promptSttOptionsInResponse);
             audioOutput.startAudioOutput(this.endOfAudioOutputTask);
-            this.indicator.blink(500);
+            this.indicator.blink(250);
             break;
 
         case "audio_data":
@@ -1068,7 +1068,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
         // Optional parameters
         watsonPort = props.getProperty("port");
 
-        language = props.getProperty("language");
+        language = props.getProperty("language", "en-US");
         engine = props.getProperty("engine");
 
         String noSsl = props.getProperty("nossl", "false");
@@ -1078,8 +1078,8 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
         		tenantID="";
         userID = props.getProperty("userID");
         watsonVoice = props.getProperty("voice");
-        commandSocketPort = Integer.parseInt(props.getProperty("cmdSocketPort", "10010"));
-        audioSocketPort = Integer.parseInt(props.getProperty("audioSocketPort", "10011"));
+        commandSocketPort = Integer.parseInt(props.getProperty("cmdSocketPort", "20991"));
+        audioSocketPort = Integer.parseInt(props.getProperty("audioSocketPort", "20992"));
         statusPingRate = Long.parseLong(props.getProperty("statusPingRate", "7000"));
         debug = props.getProperty("debug", "false").equalsIgnoreCase("true");
         enableResponseUrlProcessing = props.getProperty("urltts", "true").equalsIgnoreCase("true");
