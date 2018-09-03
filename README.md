@@ -216,13 +216,21 @@ The following sample output indicates that audio data is being received from the
 ```
 
 The following sample output indicates that excess audio data is being read from the audio socket to clear it after a micClose command was sent.
-```
-######
-```
+
+
 
 #### Step 9: View log data.
-Review the log file, if required.  The audio client uses Log4J.  The logging configuration file is in `config/log4j2.xm`l.
+Review the log file, if required.  The audio client uses Log4J.  The logging configuration file is in `config/log4j2.xml`.
 For more information about configuring logging, see the [LOG4J website](https://logging.apache.org/log4j/2.x/manual/appenders.html).
+
+The current file and nine previous files (compressed) are saved.  This can be changed by modifying the `config/log4j2.xml` configuration file.
+
+#### Step 10: Recording and Analyzing Performance Data
+The client will record performance data in the logs/perf.log file if the log4j2.xml configuration has the `GLOBAL.Performance` logging category level set to `debug`.
+
+The file contains tab separated values to make it easy to import into a spreadsheet program for analysis.  Each client interaction with the Watson Assistant Solutions server is recorded on a separate line.  The numeric values are in milliseconds. The `Trigger` value is an absolute timestamp and the other time values are deltas from that (elapsed time from the trigger).  The `Packets` and `Data` values are absolute.  The `Method` value is `URL|Stream` indicating how the audio was delivered.  The `STT` and `RESP` are the text of the Speech-to-Text transcript and the text of the Text-to-Speech response.
+
+The current file and nine previous files (compressed) are saved.  This can be changed by modifying the `config/log4j2.xml` configuration file.
 
 ### Result
 The audio client is configured on your device and you have tested the streaming of audio data to the audio gateway.
