@@ -49,8 +49,8 @@ public class StatusConsole implements StatusIndicator {
             try {
                 statusOn = false;
                 while (blink) {
-                    char statusChar = (toggle() ? '\u00D6' : '\u00F8'); // on='large circle with dots' : off='small circle with diagonal cross'
-                    System.out.print("<<" + statusChar + ">>");
+                    char statusChar = (toggle() ? '+' : '-'); // on='+' : off='-'
+                    System.out.print("[" + statusChar + "]");
                     Thread.sleep(onOffTime);
                 }
             } catch (InterruptedException ie) {

@@ -15,8 +15,19 @@ package wa.status;
  * limitations under the License.
  */
 
-import com.pi4j.io.gpio.*;
+import com.pi4j.io.gpio.GpioController;
+import com.pi4j.io.gpio.GpioFactory;
+import com.pi4j.io.gpio.GpioPinDigitalOutput;
+import com.pi4j.io.gpio.PinState;
+import com.pi4j.io.gpio.RaspiPin;
 
+/** 
+ * Uses the Raspberry Pi GPIO pin to display status.
+ * 
+ * The GPIO pins used are identified by the `WiringPi/Pi4J` convention.
+ * It is important to understand that there are different conventions for numbering.
+ * 
+ */
 public class StatusLED implements StatusIndicator {
 
     private boolean blinking = false;
@@ -26,9 +37,9 @@ public class StatusLED implements StatusIndicator {
     private static final boolean dualLED = false;
 
     private final GpioController gpio = GpioFactory.getInstance();
-    private final GpioPinDigitalOutput blueLedControl = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_23);  // GPIO Pin 16
-    private final GpioPinDigitalOutput greenLedControl = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_24); // GPIO Pin 18
-    private final GpioPinDigitalOutput redLedControl = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_25);   // GPIO Pin 22
+    private final GpioPinDigitalOutput blueLedControl = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_00);  // RPi physical GPIO Pin 11
+    private final GpioPinDigitalOutput greenLedControl = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_02); // RPi physical GPIO Pin 13
+    private final GpioPinDigitalOutput redLedControl = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_03);   // RPi physical GPIO Pin 15
 
     public StatusLED() {
         blueLedControl.setShutdownOptions(true, PinState.LOW);
