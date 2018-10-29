@@ -25,6 +25,7 @@ import java.net.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import main.Version;
 import wa.audio.AudioInput;
 
 import java.io.*;
@@ -76,7 +77,8 @@ public class SocketCommandProcessor extends Thread {
         private Command currentCommand;
 
         private int state = WAITING;
-
+        private String okWithVersion = OK + " " + Version.getInstance().getVersion();
+        
         public Command getCommand() {
             return currentCommand;
         }
@@ -85,33 +87,33 @@ public class SocketCommandProcessor extends Thread {
             String theOutput = null;
 
             if (state == WAITING) {
-                theOutput = OK;
+                theOutput = okWithVersion;
                 currentCommand = Command.NONE;
                 state = ACCEPT_COMMAND;
             } else if (state == ACCEPT_COMMAND) {
                 LOG.info(String.format("Command Socket received: \"%s\"", theInput));
                 if (theInput.equalsIgnoreCase("RM")) {
-                    theOutput = OK;
+                    theOutput = okWithVersion;
                     currentCommand = Command.READ_MICROPHONE;
                     state = ACCEPT_COMMAND;
                 }
                 else if (theInput.equalsIgnoreCase("RAS")) {
-                    theOutput = OK;
+                    theOutput = okWithVersion;
                     currentCommand = Command.READ_AUDIO_SOCKET;
                     state = ACCEPT_COMMAND;
                 }
                 else if (theInput.equalsIgnoreCase("OS")) {
-                    theOutput = OK;
+                    theOutput = okWithVersion;
                     currentCommand = Command.OUTPUT_TO_SPEAKER;
                     state = ACCEPT_COMMAND;
                 }
                 else if (theInput.equalsIgnoreCase("OAS")) {
-                    theOutput = OK;
+                    theOutput = okWithVersion;
                     currentCommand = Command.OUTPUT_TO_AUDIO_SOCKET;
                     state = ACCEPT_COMMAND;
                 }
                 else if (theInput.equalsIgnoreCase("finishedPlaying")) {
-                    theOutput = OK;
+                    theOutput = okWithVersion;
                     currentCommand = Command.FINISHED_PLAYING;
                     state = ACCEPT_COMMAND;
                 }
@@ -135,7 +137,7 @@ public class SocketCommandProcessor extends Thread {
         this.client = client;
         this.portNumber = portNumber;
         try {
-            serverSocket = new ServerSocket(portNumber);
+            serverSocket = new ServerSocket(portNumber, 0, InetAddress.getByName(null));
         } catch (IOException e) {
             LOG.error("Error trying to create command socket on port " + this.portNumber, e);
         }

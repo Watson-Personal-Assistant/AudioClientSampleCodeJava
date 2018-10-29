@@ -47,7 +47,7 @@ public class AudioSocket extends Thread {
         this.portNumber = portNumber;
         audioSocketDone = new CountDownLatch(1);
         try {
-            serverSocket = new ServerSocket(portNumber);
+            serverSocket = new ServerSocket(portNumber, 0, InetAddress.getByName(null));
         } catch (IOException e) {
             LOG.error("Error trying to create audio socket on port " + this.portNumber, e);
         }
