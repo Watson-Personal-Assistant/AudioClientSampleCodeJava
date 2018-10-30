@@ -54,7 +54,11 @@ public class Driver {
     public void runClient() {
         Thread.currentThread().setName("Driver (main)");
 
+        // Get our version
+        String version = Version.getInstance().getVersion();
         LOG.info("Watson Assistant Solutions - Audio Client Driver (main) starting...");
+        LOG.info("Version: " + version);
+        
         Client client = null;
         Properties properties = readProps();
         if (null == properties) {
