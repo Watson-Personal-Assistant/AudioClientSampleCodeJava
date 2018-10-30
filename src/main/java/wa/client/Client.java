@@ -864,7 +864,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
             // Indicate that a wake word trigger event is allowed
             // and blink the status LED
             this.endOfAudioOutputTask = new EndOfAudioOutputTask(id, shouldPrompt, promptSttOptionsInResponse);
-            audioOutput.startAudioOutput(this.endOfAudioOutputTask);
+            audioOutput.startAudioOutput(this);
             this.indicator.blink(250);
             break;
 

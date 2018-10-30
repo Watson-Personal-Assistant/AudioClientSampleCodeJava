@@ -30,6 +30,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import wa.audio.AudioSocket.SocketNotAvailable;
+import wa.client.Client;
 
 public class AudioOutput {
     // Initialize our logger
@@ -49,7 +50,7 @@ public class AudioOutput {
 
     private Thread speakerThread;
     
-    private Runnable endOfAudioOutputTask;
+    private Client client;
     
     private volatile boolean audioDataComplete = false;
     private volatile boolean outputDisabled = false;
@@ -121,8 +122,8 @@ public class AudioOutput {
         return sharedInstance;
     }
 
-    public synchronized void startAudioOutput(Runnable endOfAudioOutputTask) {
-        this.endOfAudioOutputTask = endOfAudioOutputTask;
+    public synchronized void startAudioOutput(Client client) {
+    	this.client = client;
         if (speakerThread != null) {
             speakerThread.interrupt();
         }
@@ -172,13 +173,6 @@ public class AudioOutput {
         }
     }
 
-    private void runEndOfAudioOutputTask() {
-        LOG.debug("AudioOutput.runEndOfAudioOutputTask()");
-        if (null != endOfAudioOutputTask) {
-            endOfAudioOutputTask.run();
-        }
-    }
-    
     private Thread audioOutputThread() {
         return new Thread(() -> {
             Thread.currentThread().setName("Audio Output - " + System.currentTimeMillis());
@@ -250,7 +244,7 @@ public class AudioOutput {
                                 //speaker.drain();
                                 speaker.flush();
                                 speaker.close();
-                                runEndOfAudioOutputTask();
+                                client.finishedPlayingOutput();
                             }
                             break;
                         }
