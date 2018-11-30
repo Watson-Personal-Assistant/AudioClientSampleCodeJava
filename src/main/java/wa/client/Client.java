@@ -880,7 +880,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
 
             id = response.getString("id");
             if (!id.equals(currentAudioId)) {
-                LOG.warn("out of sequence audio_data dropped");
+                LOG.info("Audio that was not associated with the current interaction was dropped. Possibly a response to a previous question.");
                 return;
             }
 
@@ -926,7 +926,7 @@ public class Client extends WebSocketListener implements ThreadManager, Runnable
             voiceUrl = null;
             id = response.getString("id");
             if (!id.equals(currentAudioId)) {
-                LOG.warn("out of sequence audio_end ignored");
+                LOG.info("Audio that was not associated with the current interaction was dropped. Possibly a response to a previous question.");
                 return;
             }
             if (null != endOfAudioOutputTask) {
