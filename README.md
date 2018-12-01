@@ -151,8 +151,6 @@ Table 1 - Audio client configuration parameters
 | `voice`  | The text-to-speech service to use.  The default value is en-US-LisaVoice.  |Text-to-speech parameter |
 | `nogpio`   | If set to `true`, use the enter key and console for the wake up command. Use the console for status. This allows the client to run on platforms other than a Raspberry Pi (for example, Mac OS and Windows). Note: This option can also be used on a Raspberry Pi to allow it to be controlled through the console rather than by connecting it to a switch and LED.  The default value is `false`. If set to `false`, use the GPIO-connected push-to-talk switch for wake-up and use an LED that is connected to GPIO for status.  **Important**: To enable a user account to have access to GPIO without a sudo, set `WIRINGPI_GPIOMEM=1` on the Raspberrry Pi. | Raspberry Pi configuration parameter |
 | `nossl`  |If set to `true`, connect to the gateway without using an SSL protocol.  The value is set to `false` by default.    | SSL parameter |
-| `debug`  |  If set to true, creates additional log information.  The value is set to `false` by default. | Logging parameter |
-| `logAdditionalAudioInfo`  | If set to `true`, log information about the size of the audio packets and the time taken to receive them. | Logging parameter |
 
 
 #### Step 4: Build the audio client JAR file.
