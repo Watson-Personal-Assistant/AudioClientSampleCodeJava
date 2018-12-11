@@ -144,8 +144,8 @@ Table 1 - Audio client configuration parameters
 | `skillset`  | The skillset to be used by the audio client.  | Audio gateway connection parameter  |
 | `engine `  | The speech-to-text (STT) engine that the audio gateway must use to convert speech to text.  Valid values are `watson` or `google`.  The default value is `google`.   | Speech-to-text parameter |
 | `urltts`  | If set to `true`, the audio gateway plays back audio from a URL.  If set to `false`, the gateway streams audio using data messages.  The default value is `false`.  | Audio response type parameter |
-| `cmdSocketPort`  | The port to use for external commands. The default port is 10010.  |External control parameter |
-| `audioSocketPort`  | The port to use for audio streaming.  The default port is 10011.   |External control parameter |
+| `cmdSocketPort`  | The port to use for external commands. The default port is 20991.  |External control parameter |
+| `audioSocketPort`  | The port to use for audio streaming.  The default port is 20992.   |External control parameter |
 | `statusPingRate`  |The rate at which the audio client sends operational status messages to its controller in milliseconds.  | External control parameter |
 | `useDefaultAudio`  | If set to `true`, use the default audio output of the device.  For example, on Raspberry Pi, the default output is an aux jack.  If you are using a USB speaker, set the value to `false`.  **Tip**: If no audio is heard, change the value of this parameter.  | Audio output parameter |
 | `voice`  | The text-to-speech service to use.  The default value is en-US-LisaVoice.  |Text-to-speech parameter |
