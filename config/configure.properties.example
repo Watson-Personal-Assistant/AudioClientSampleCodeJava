@@ -38,7 +38,3 @@ audioSocketPort=20992
 
 # Client status update ping rate in mS (0 = no status ping. Default = 7000)
 statusPingRate=7000
-
-### Enable additional debugging information.
-#debug=true
-#logAdditionalAudioInfo=true
